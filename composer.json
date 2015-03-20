@@ -1,0 +1,42 @@
+{
+  "name": "dreamfactory/rave-rws",
+  "description": "Remote Web Service for the rave core.",
+  "minimum-stability": "dev",
+  "keywords": [
+    "dreamfactory",
+    "dsp",
+    "rave",
+    "rws"
+  ],
+  "homepage": "https://www.dreamfactory.com/",
+  "license": "Apache-2.0",
+  "authors": [
+    {
+      "name": "Arif Islam",
+      "email": "arifislam@dreamfactory.com"
+    },
+    {
+      "name": "Jerry Ablan",
+      "email": "jerryablan@dreamfactory.com"
+    },
+    {
+      "name": "Lee Hicks",
+      "email": "leehicks@dreamfactory.com"
+    }
+  ],
+  "support": {
+    "email": "support@dreamfactory.com",
+    "issues": "https://github.com/dreamfactorysoftware/rave/issues",
+    "wiki": "https://github.com/dreamfactorysoftware/rave/wiki",
+    "source": "https://github.com/dreamfactorysoftware/rave"
+  },
+  "require": {
+    "dreamfactory/php-utils": "dev-develop as dev-master",
+    "dreamfactory/rave": "dev-develop as dev-master"
+  },
+  "autoload":{
+    "psr-4": {
+      "DreamFactory\\Rave\\Rws\\":"src/"
+    }
+  }
+}
