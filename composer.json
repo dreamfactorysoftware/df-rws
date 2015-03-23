@@ -31,7 +31,6 @@
     "source": "https://github.com/dreamfactorysoftware/rave"
   },
   "require": {
-    "dreamfactory/php-utils": "dev-develop as dev-master",
     "dreamfactory/rave": "dev-develop as dev-master"
   },
   "autoload":{
