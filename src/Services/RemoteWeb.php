@@ -26,7 +26,7 @@ use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Rave\Exceptions\RestException;
 use DreamFactory\Rave\Utility\DbUtilities;
 
-class RemoteWebService extends BaseRestService
+class RemoteWeb extends BaseRestService
 {
     //*************************************************************************
     //* Members
@@ -35,51 +35,51 @@ class RemoteWebService extends BaseRestService
     /**
      * @var string
      */
-    protected $_baseUrl;
+    protected $baseUrl;
     /**
      * @var array
      */
-    protected $_credentials;
+    //protected $_credentials;
     /**
      * @var array
      */
-    protected $_headers;
+    protected $headers;
     /**
      * @var array
      */
-    protected $_parameters;
+    protected $parameters;
     /**
      * @var array
      */
-    protected $_excludedParameters;
+    protected $excludedParameters;
     /**
      * @var bool
      */
-    protected $_cacheEnabled;
+    //protected $_cacheEnabled;
     /**
      * @var int
      */
-    protected $_cacheTTL;
+    //protected $_cacheTTL;
     /**
      * @var bool
      */
-    protected $_cacheMatchBody;
+    //protected $_cacheMatchBody;
     /**
      * @var string
      */
-    protected $_cacheQuery;
+    protected $cacheQuery;
     /**
      * @var string
      */
-    protected $_query;
+    protected $query;
     /**
      * @var string
      */
-    protected $_url;
+    protected $url;
     /**
      * @var array
      */
-    protected $_curlOptions = array();
+    protected $curlOptions = array();
 
     //*************************************************************************
     //* Methods
@@ -92,30 +92,48 @@ class RemoteWebService extends BaseRestService
      *
      * @throws \InvalidArgumentException
      */
-    public function __construct( $config )
+    public function __construct( $settings )
     {
-        parent::__construct( $config );
+        parent::__construct( $settings );
 
-        $this->setAutoDispatch( false );
+        $this->autoDispatch = false;
+
+        $config = ArrayUtils::get($settings, 'config', array());
+
+        $this->baseUrl = ArrayUtils::get($config, 'base_url');
 
         // Validate url setup
-        if ( empty( $this->_baseUrl ) )
+        if ( empty( $this->baseUrl ) )
         {
             throw new \InvalidArgumentException( 'Remote Web Service base url can not be empty.' );
         }
 
-        $this->_excludedParameters = ArrayUtils::getDeep( $this->_credentials, 'client_exclusions', 'parameters', array() );
+        $this->parameters = ArrayUtils::clean(ArrayUtils::get($config, 'parameters', array()));
+        $this->headers = ArrayUtils::clean(ArrayUtils::get($config, 'headers', array()));
+        $this->setExcludedParameters($config);
 
-//        $_cacheConfig = ArrayUtils::get( $this->_credentials, 'cache_config' );
-
-        $this->_cacheEnabled = false;
         //Todo: Implement cache
+//        $_cacheConfig = ArrayUtils::get( $this->_credentials, 'cache_config' );
 //        $this->_cacheEnabled = ArrayUtils::getBool( $_cacheConfig, 'enabled' );
 //        $this->_cacheTTL = intval( ArrayUtils::get( $_cacheConfig, 'ttl', Platform::DEFAULT_CACHE_TTL ) );
 //        $this->_cacheMatchBody = ArrayUtils::getBool( $_cacheConfig, 'match_body' );
+//        $this->_cacheQuery = '';
 
-        $this->_query = '';
-        $this->_cacheQuery = '';
+        $this->query = '';
+    }
+
+    protected function setExcludedParameters($config)
+    {
+        $params = ArrayUtils::clean(ArrayUtils::get($config, 'parameters', array()));
+        $this->excludedParameters = [];
+
+        foreach($params as $param)
+        {
+            if(1==ArrayUtils::get($param, 'exclude', 0))
+            {
+                $this->excludedParameters[] = $param;
+            }
+        }
     }
 
     protected static function parseArrayParameter( &$query, &$key, $name, $value, $add_to_query = true, $add_to_key = true )
@@ -270,34 +288,34 @@ class RemoteWebService extends BaseRestService
      *
      * @return mixed|void
      */
-    protected function _preProcess()
+    protected function preProcess()
     {
         parent::preProcess();
 
         $this->checkPermission( $this->getRequestedAction(), $this->name );
 
         //  set outbound parameters
-        $this->buildParameterString( $this->_parameters, $this->_excludedParameters, $this->action, $this->_query, $this->_cacheQuery );
+        $this->buildParameterString( $this->parameters, $this->excludedParameters, $this->action, $this->query, $this->cacheQuery );
 
         //	set outbound headers
-        $this->addHeaders( $this->_headers, $this->action, $this->_curlOptions );
+        $this->addHeaders( $this->headers, $this->action, $this->curlOptions );
     }
 
     /**
      * @throws \DreamFactory\Rave\Exceptions\RestException
      * @return bool
      */
-    protected function handleResource()
+    protected function processRequest()
     {
-        $_data = $this->getPayloadData();
+        $data = $this->getPayloadData();
 
-        $_resource = ( !empty( $this->resourcePath ) ? '/' . ltrim( $this->resourcePath, '/' ) : null );
-        $this->_url = rtrim( $this->_baseUrl, '/' ) . $_resource;
+        $resource = ( !empty( $this->resourcePath ) ? '/' . ltrim( $this->resourcePath, '/' ) : null );
+        $this->url = rtrim( $this->baseUrl, '/' ) . $resource;
 
-        if ( !empty( $this->_query ) )
+        if ( !empty( $this->query ) )
         {
-            $_splicer = ( false === strpos( $this->_baseUrl, '?' ) ) ? '?' : '&';
-            $this->_url .= $_splicer . $this->_query;
+            $splicer = ( false === strpos( $this->baseUrl, '?' ) ) ? '?' : '&';
+            $this->url .= $splicer . $this->query;
         }
 
         // build cache_key
@@ -308,8 +326,8 @@ class RemoteWebService extends BaseRestService
 //            $_cacheKey .= $_splicer . $this->_cacheQuery;
 //        }
 
-        if ( $this->_cacheEnabled )
-        {
+//        if ( $this->_cacheEnabled )
+//        {
 //            switch ( $this->action )
 //            {
 //                case static::GET:
@@ -319,124 +337,44 @@ class RemoteWebService extends BaseRestService
 //                    }
 //                    break;
 //            }
-        }
+//        }
 
         //Log::debug( 'Outbound HTTP request: ' . $this->action . ': ' . $this->_url );
 
-        $_result = Curl::request(
+        $result = Curl::request(
             $this->action,
-            $this->_url,
-            $_data,
-            $this->_curlOptions
+            $this->url,
+            $data,
+            $this->curlOptions
         );
 
-        if ( false === $_result )
+        if ( false === $result )
         {
-            $_error = Curl::getError();
-            throw new RestException( ArrayUtils::get( $_error, 'code', 500 ), ArrayUtils::get( $_error, 'message' ) );
+            $error = Curl::getError();
+            throw new RestException( ArrayUtils::get( $error, 'code', 500 ), ArrayUtils::get( $error, 'message' ) );
         }
 
-        $_status = Curl::getLastHttpCode();
-        if ( $_status >= 300 )
+        $status = Curl::getLastHttpCode();
+        if ( $status >= 300 )
         {
-            if ( !is_string( $_result ) )
+            if ( !is_string( $result ) )
             {
-                $_result = json_encode( $_result );
+                $result = json_encode( $result );
             }
 
-            throw new RestException( $_status, $_result, $_status );
+            throw new RestException( $status, $result, $status );
         }
 
-        if ( $this->_cacheEnabled )
-        {
+//        if ( $this->_cacheEnabled )
+//        {
 //            switch ( $this->action )
 //            {
 //                case static::GET:
 //                    Platform::storeSet( $_cacheKey, $_result, $this->_cacheTTL );
 //                    break;
 //            }
-        }
+//        }
 
-        return $_result;
-    }
-
-    /**
-     * @param string $baseUrl
-     *
-     * @return RemoteWebService
-     */
-    public function setBaseUrl( $baseUrl )
-    {
-        $this->_baseUrl = $baseUrl;
-
-        return $this;
-    }
-
-    /**
-     * @return string
-     */
-    public function getBaseUrl()
-    {
-        return $this->_baseUrl;
-    }
-
-    /**
-     * @param array $credentials
-     *
-     * @return RemoteWebService
-     */
-    public function setCredentials( $credentials )
-    {
-        $this->_credentials = $credentials;
-
-        return $this;
-    }
-
-    /**
-     * @return array
-     */
-    public function getCredentials()
-    {
-        return $this->_credentials;
-    }
-
-    /**
-     * @param array $headers
-     *
-     * @return RemoteWebService
-     */
-    public function setHeaders( $headers )
-    {
-        $this->_headers = $headers;
-
-        return $this;
-    }
-
-    /**
-     * @return array
-     */
-    public function getHeaders()
-    {
-        return $this->_headers;
-    }
-
-    /**
-     * @param array $parameters
-     *
-     * @return RemoteWebService
-     */
-    public function setParameters( $parameters )
-    {
-        $this->_parameters = $parameters;
-
-        return $this;
-    }
-
-    /**
-     * @return array
-     */
-    public function getParameters()
-    {
-        return $this->_parameters;
+        return $result;
     }
 }

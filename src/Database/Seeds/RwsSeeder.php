@@ -21,6 +21,7 @@
 namespace DreamFactory\Rave\Rws\Database\Seeds;
 
 use Illuminate\Database\Seeder;
+use DreamFactory\Rave\Models\ServiceType;
 
 class RwsSeeder extends Seeder
 {
@@ -37,7 +38,7 @@ class RwsSeeder extends Seeder
             ServiceType::create(
                 [
                     'name'           => 'rws',
-                    'class_name'     => "DreamFactory\\Rave\\Rws\\Services\\RemoteWebService",
+                    'class_name'     => "DreamFactory\\Rave\\Rws\\Services\\RemoteWeb",
                     'config_handler' => "DreamFactory\\Rave\\Rws\\Models\\RwsConfig",
                     'label'          => 'Remote Web Service',
                     'description'    => 'A rave service to handle Remote Web Services',
