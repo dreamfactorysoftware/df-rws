@@ -20,6 +20,8 @@ class CreateRemoteWebServiceTables extends Migration {
                 $t->integer( 'service_id' )->unsigned()->primary();
                 $t->foreign( 'service_id' )->references( 'id' )->on( 'services' )->onDelete( 'cascade' );
                 $t->string( 'base_url' )->nullable();
+                $t->boolean('cache_enabled')->default(0);
+                $t->integer('cache_ttl')->default(0);
             }
         );
 
@@ -36,6 +38,7 @@ class CreateRemoteWebServiceTables extends Migration {
                 $t->boolean('exclude')->default(0);
                 $t->boolean('outbound')->default(0);
                 $t->boolean('cache_key')->default(0);
+                $t->integer('action')->default(0);
             }
         );
 
@@ -50,6 +53,7 @@ class CreateRemoteWebServiceTables extends Migration {
                 $t->string('name');
                 $t->mediumText('value')->nullable();
                 $t->boolean('pass_from_client')->default(0);
+                $t->integer('action')->default(0);
             }
         );
 	}

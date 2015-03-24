@@ -29,7 +29,7 @@ class ParameterConfig extends BaseModel
 
     protected $primaryKey = 'id';
 
-    protected $fillable = ['service_id', 'name', 'value', 'exclude', 'outbound', 'chaching_key'];
+    protected $fillable = ['service_id', 'name', 'value', 'exclude', 'outbound', 'cache_key', 'action'];
 
     /**
      * @var bool

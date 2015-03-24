@@ -29,7 +29,7 @@ class HeaderConfig extends BaseModel
 
     protected $primaryKey = 'id';
 
-    protected $fillable = ['service_id', 'name', 'value', 'pass_from_client'];
+    protected $fillable = ['service_id', 'name', 'value', 'pass_from_client', 'action'];
 
     /**
      * @var bool

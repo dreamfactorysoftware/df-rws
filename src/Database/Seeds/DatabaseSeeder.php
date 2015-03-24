@@ -23,7 +23,7 @@ namespace DreamFactory\Rave\Rws\Database\Seeds;
 use Illuminate\Database\Seeder;
 use DreamFactory\Rave\Models\ServiceType;
 
-class RwsSeeder extends Seeder
+class DatabaseSeeder extends Seeder
 {
     /**
      * Run the database seeds.

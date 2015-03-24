@@ -20,11 +20,13 @@
 
 namespace DreamFactory\Rave\Rws\Services;
 
-use DreamFactory\Rave\Services\BaseRestService;
+use Log;
+use Config;
 use DreamFactory\Library\Utility\Curl;
 use DreamFactory\Library\Utility\ArrayUtils;
+use DreamFactory\Rave\Enums\VerbsMask;
+use DreamFactory\Rave\Services\BaseRestService;
 use DreamFactory\Rave\Exceptions\RestException;
-use DreamFactory\Rave\Utility\DbUtilities;
 
 class RemoteWeb extends BaseRestService
 {
@@ -55,15 +57,11 @@ class RemoteWeb extends BaseRestService
     /**
      * @var bool
      */
-    //protected $_cacheEnabled;
+    protected $cacheEnabled;
     /**
      * @var int
      */
-    //protected $_cacheTTL;
-    /**
-     * @var bool
-     */
-    //protected $_cacheMatchBody;
+    protected $cacheTTL;
     /**
      * @var string
      */
@@ -88,18 +86,18 @@ class RemoteWeb extends BaseRestService
     /**
      * Create a new RemoteWebService
      *
-     * @param array $config configuration array
+     * @param array $settings settings array
      *
      * @throws \InvalidArgumentException
      */
     public function __construct( $settings )
     {
         parent::__construct( $settings );
-
         $this->autoDispatch = false;
+        $this->query = '';
+        $this->_cacheQuery = '';
 
         $config = ArrayUtils::get($settings, 'config', array());
-
         $this->baseUrl = ArrayUtils::get($config, 'base_url');
 
         // Validate url setup
@@ -107,21 +105,19 @@ class RemoteWeb extends BaseRestService
         {
             throw new \InvalidArgumentException( 'Remote Web Service base url can not be empty.' );
         }
-
         $this->parameters = ArrayUtils::clean(ArrayUtils::get($config, 'parameters', array()));
         $this->headers = ArrayUtils::clean(ArrayUtils::get($config, 'headers', array()));
         $this->setExcludedParameters($config);
 
-        //Todo: Implement cache
-//        $_cacheConfig = ArrayUtils::get( $this->_credentials, 'cache_config' );
-//        $this->_cacheEnabled = ArrayUtils::getBool( $_cacheConfig, 'enabled' );
-//        $this->_cacheTTL = intval( ArrayUtils::get( $_cacheConfig, 'ttl', Platform::DEFAULT_CACHE_TTL ) );
-//        $this->_cacheMatchBody = ArrayUtils::getBool( $_cacheConfig, 'match_body' );
-//        $this->_cacheQuery = '';
-
-        $this->query = '';
+        $this->cacheEnabled = intval(ArrayUtils::get($config, 'cache_enabled', 0));
+        $this->cacheTTL = intval( ArrayUtils::get($config, 'cache_ttl', Config::get('rave.default_cache_ttl') ) );
     }
 
+    /**
+     * Sets the array of excluded parameters based on configuration.
+     *
+     * @param array $config configuration array
+     */
     protected function setExcludedParameters($config)
     {
         $params = ArrayUtils::clean(ArrayUtils::get($config, 'parameters', array()));
@@ -129,13 +125,21 @@ class RemoteWeb extends BaseRestService
 
         foreach($params as $param)
         {
-            if(1==ArrayUtils::get($param, 'exclude', 0))
+            if(true===boolval(ArrayUtils::get($param, 'exclude', 0)))
             {
                 $this->excludedParameters[] = $param;
             }
         }
     }
 
+    /**
+     * @param      $query
+     * @param      $key
+     * @param      $name
+     * @param      $value
+     * @param bool $add_to_query
+     * @param bool $add_to_key
+     */
     protected static function parseArrayParameter( &$query, &$key, $name, $value, $add_to_query = true, $add_to_key = true )
     {
         if ( is_array( $value ) )
@@ -172,21 +176,19 @@ class RemoteWeb extends BaseRestService
         }
     }
 
+    /**
+     * @param $config
+     * @param $action
+     *
+     * @return bool
+     * @throws \DreamFactory\Rave\Exceptions\BadRequestException
+     */
     protected static function doesActionApply( $config, $action )
     {
-        if ( null !== $_excludeActions = ArrayUtils::get( $config, 'action' ) )
-        {
-            if ( !( is_string( $_excludeActions ) && 0 === strcasecmp( 'all', $_excludeActions ) ) )
-            {
-                $_excludeActions = DbUtilities::validateAsArray( $_excludeActions, ',', true, 'Exclusion action config is invalid.' );
-                if ( false === array_search( $action, $_excludeActions ) )
-                {
-                    return false;
-                }
-            }
-        }
+        $excludeVerbMasks = intval(ArrayUtils::get( $config, 'action' ));
+        $myActionMask = VerbsMask::toNumeric($action);
 
-        return true;
+        return ($excludeVerbMasks & $myActionMask);
     }
 
     /**
@@ -318,29 +320,32 @@ class RemoteWeb extends BaseRestService
             $this->url .= $splicer . $this->query;
         }
 
+
         // build cache_key
-//        $_cacheKey = $this->action . ':' . $this->name . $_resource;
-//        if ( !empty( $this->_cacheQuery ) )
-//        {
-//            $_splicer = ( false === strpos( $_cacheKey, '?' ) ) ? '?' : '&';
-//            $_cacheKey .= $_splicer . $this->_cacheQuery;
-//        }
+        $cacheKey = $this->action . ':' . $this->name . $resource;
+        if ( !empty( $this->cacheQuery ) )
+        {
+            $splicer = ( false === strpos( $cacheKey, '?' ) ) ? '?' : '&';
+            $cacheKey .= $splicer . $this->cacheQuery;
+        }
 
-//        if ( $this->_cacheEnabled )
-//        {
-//            switch ( $this->action )
-//            {
-//                case static::GET:
-//                    if ( null !== $_result = Platform::storeGet( $_cacheKey ) )
+        if ( $this->cacheEnabled )
+        {
+            switch ( $this->action )
+            {
+                case static::GET:
+                    //Todo: Implement cache
+//                    if ( null !== $result = Platform::storeGet( $cacheKey ) )
 //                    {
-//                        return $_result;
+//                        return $result;
 //                    }
-//                    break;
-//            }
-//        }
+                    break;
+            }
+        }
 
-        //Log::debug( 'Outbound HTTP request: ' . $this->action . ': ' . $this->_url );
+        Log::debug( 'Outbound HTTP request: ' . $this->action . ': ' . $this->url );
 
+        Curl::setDecodeToArray(true);
         $result = Curl::request(
             $this->action,
             $this->url,
@@ -365,15 +370,17 @@ class RemoteWeb extends BaseRestService
             throw new RestException( $status, $result, $status );
         }
 
-//        if ( $this->_cacheEnabled )
-//        {
-//            switch ( $this->action )
-//            {
-//                case static::GET:
-//                    Platform::storeSet( $_cacheKey, $_result, $this->_cacheTTL );
-//                    break;
-//            }
-//        }
+
+        if ( $this->cacheEnabled )
+        {
+            switch ( $this->action )
+            {
+                case static::GET:
+                    //Todo: Implement cache
+                    //Platform::storeSet( $cacheKey, $result, $this->cacheTTL );
+                    break;
+            }
+        }
 
         return $result;
     }
