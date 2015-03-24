@@ -41,10 +41,6 @@ class RemoteWeb extends BaseRestService
     /**
      * @var array
      */
-    //protected $_credentials;
-    /**
-     * @var array
-     */
     protected $headers;
     /**
      * @var array
@@ -200,10 +196,11 @@ class RemoteWeb extends BaseRestService
      *
      * @return void
      */
-    protected static function buildParameterString( $parameters, $exclusions, $action, &$query, &$cache_key )
+    protected static function buildParameterString( $parameters, $exclusions, $action, &$query, &$cache_key, $requestQuery )
     {
         // inbound parameters from request to be passed on
-        foreach ( $_REQUEST as $_name => $_value )
+
+        foreach ( $requestQuery as $_name => $_value )
         {
             $_outbound = true;
             $_addToCacheKey = true;
@@ -297,7 +294,7 @@ class RemoteWeb extends BaseRestService
         $this->checkPermission( $this->getRequestedAction(), $this->name );
 
         //  set outbound parameters
-        $this->buildParameterString( $this->parameters, $this->excludedParameters, $this->action, $this->query, $this->cacheQuery );
+        $this->buildParameterString( $this->parameters, $this->excludedParameters, $this->action, $this->query, $this->cacheQuery, $this->getQueryData() );
 
         //	set outbound headers
         $this->addHeaders( $this->headers, $this->action, $this->curlOptions );
@@ -309,7 +306,7 @@ class RemoteWeb extends BaseRestService
      */
     protected function processRequest()
     {
-        $data = $this->getPayloadData();
+        $data = $this->request->getContent();
 
         $resource = ( !empty( $this->resourcePath ) ? '/' . ltrim( $this->resourcePath, '/' ) : null );
         $this->url = rtrim( $this->baseUrl, '/' ) . $resource;
@@ -319,7 +316,6 @@ class RemoteWeb extends BaseRestService
             $splicer = ( false === strpos( $this->baseUrl, '?' ) ) ? '?' : '&';
             $this->url .= $splicer . $this->query;
         }
-
 
         // build cache_key
         $cacheKey = $this->action . ':' . $this->name . $resource;

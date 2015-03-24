@@ -61,11 +61,51 @@ class RwsTest extends \DreamFactory\Rave\Testing\TestCase
                 ]
             );
         }
+
+        if(!$this->serviceExists('dsp-tester'))
+        {
+            \DreamFactory\Rave\Models\Service::create(
+                [
+                    "name"=>"dsp-tester",
+                    "type"=>"rws",
+                    "label"=>"Remote web service",
+                    "config"=>[
+                        "base_url"=>"https://dsp-tester.cloud.dreamfactory.com/rest",
+                        "cache_enabled"=>0,
+                        "headers"=>[
+                            [
+                                "name"=>"Authorization",
+                                "value"=>"Basic YXJpZmlzbGFtQGRyZWFtZmFjdG9yeS5jb206dGVzdCEyMzQ=",
+                                "pass_from_client"=>0,
+                                "action"=>31
+                            ],
+                            [
+                                "name"=>"X-DreamFactory-Application-Name",
+                                "value"=>"admin",
+                                "pass_from_client"=>0,
+                                "action"=>31
+                            ],
+                            [
+                                "name"=>"X-HTTP-Method",
+                                "pass_from_client"=>1,
+                                "action"=>31
+                            ]
+                        ]
+                    ]
+                ]
+            );
+        }
     }
 
     public function testGETGmapDirection()
     {
         $rs = $this->call(Verbs::GET, $this->prefix.'/gmap');
         $this->assertContains('{"routes":[{"bounds":{"northeast":{"lat":34.1951083,"lng":-84.2175458}', $rs->getContent());
+    }
+
+    public function testGETheaders()
+    {
+        $rs = $this->call(Verbs::GET, $this->prefix.'/dsp-tester');
+        $this->assertEquals('{"service":[{"name":"Database","api_name":"db"},{"name":"Email Service","api_name":"email"},{"name":"Local File Storage","api_name":"files"},{"name":"Local Portal Service","api_name":"portal"}]}', $rs->getContent());
     }
 }
