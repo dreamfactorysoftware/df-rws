@@ -18,7 +18,7 @@ class CreateRemoteWebServiceTables extends Migration {
             function ( Blueprint $t )
             {
                 $t->integer( 'service_id' )->unsigned()->primary();
-                $t->foreign( 'service_id' )->references( 'id' )->on( 'services' )->onDelete( 'cascade' );
+                $t->foreign( 'service_id' )->references( 'id' )->on( 'service' )->onDelete( 'cascade' );
                 $t->string( 'base_url' )->nullable();
                 $t->boolean('cache_enabled')->default(0);
                 $t->integer('cache_ttl')->default(0);
