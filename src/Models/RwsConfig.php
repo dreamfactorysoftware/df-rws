@@ -20,6 +20,7 @@
 
 namespace DreamFactory\Rave\Rws\Models;
 
+use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Rave\Models\BaseServiceConfigModel;
 use Guzzle\Http\Message\Header;
 
@@ -27,7 +28,7 @@ class RwsConfig extends BaseServiceConfigModel
 {
     protected $table = 'rws_config';
 
-    protected $fillable = [ 'service_id', 'base_url', 'parameters', 'headers' ];
+    protected $fillable = [ 'service_id', 'base_url', 'parameters', 'headers', 'cache_enabled', 'cache_ttl' ];
 
     protected $appends = [ 'parameters', 'headers' ];
 
@@ -93,6 +94,21 @@ class RwsConfig extends BaseServiceConfigModel
     public function setParametersAttribute( Array $val )
     {
         $this->parameters = $val;
+        $params = [];
+        foreach($this->parameters as $param)
+        {
+            $p = ParameterConfig::find(ArrayUtils::get($param, 'id'));
+            if(!empty($p))
+            {
+                $p->setRawAttributes($param);
+                $params[] = $p;
+            }
+            else{
+                $params[] = new ParameterConfig($param);
+            }
+        }
+        $this->parameter()->saveMany($params);
+
     }
 
     /**
@@ -111,5 +127,19 @@ class RwsConfig extends BaseServiceConfigModel
     public function setHeadersAttribute( Array $val )
     {
         $this->headers = $val;
+        $headers = [];
+        foreach($this->headers as $header)
+        {
+            $h = HeaderConfig::findOrNew(ArrayUtils::get($header, 'id'), $header);
+            if(!empty($h))
+            {
+                $h->setRawAttributes($header);
+                $headers[] = $h;
+            }
+            else{
+                $headers[] = new HeaderConfig();
+            }
+        }
+        $this->header()->saveMany($headers);
     }
 }
