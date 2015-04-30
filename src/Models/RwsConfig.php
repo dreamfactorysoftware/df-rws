@@ -94,20 +94,25 @@ class RwsConfig extends BaseServiceConfigModel
     public function setParametersAttribute( Array $val )
     {
         $this->parameters = $val;
-        $params = [];
-        foreach($this->parameters as $param)
+
+        if($this->exists)
         {
-            $p = ParameterConfig::find(ArrayUtils::get($param, 'id'));
-            if(!empty($p))
+            $params = [ ];
+            foreach ( $this->parameters as $param )
             {
-                $p->setRawAttributes($param);
+                $p = ParameterConfig::find( ArrayUtils::get( $param, 'id' ) );
+                if ( !empty( $p ) )
+                {
+                    $p->setRawAttributes( $param );
+                }
+                else
+                {
+                    $p = new ParameterConfig( $param );
+                }
                 $params[] = $p;
             }
-            else{
-                $params[] = new ParameterConfig($param);
-            }
+            $this->parameter()->saveMany( $params );
         }
-        $this->parameter()->saveMany($params);
 
     }
 
@@ -127,19 +132,24 @@ class RwsConfig extends BaseServiceConfigModel
     public function setHeadersAttribute( Array $val )
     {
         $this->headers = $val;
-        $headers = [];
-        foreach($this->headers as $header)
+
+        if($this->exists)
         {
-            $h = HeaderConfig::findOrNew(ArrayUtils::get($header, 'id'), $header);
-            if(!empty($h))
+            $headers = [ ];
+            foreach ( $this->headers as $header )
             {
-                $h->setRawAttributes($header);
+                $h = HeaderConfig::find( ArrayUtils::get( $header, 'id' ) );
+                if ( !empty( $h ) )
+                {
+                    $h->setRawAttributes( $header );
+                }
+                else
+                {
+                    $h = new HeaderConfig();
+                }
                 $headers[] = $h;
             }
-            else{
-                $headers[] = new HeaderConfig();
-            }
+            $this->header()->saveMany( $headers );
         }
-        $this->header()->saveMany($headers);
     }
 }

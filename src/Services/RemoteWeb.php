@@ -294,7 +294,7 @@ class RemoteWeb extends BaseRestService
         $this->checkPermission( $this->getRequestedAction(), $this->name );
 
         //  set outbound parameters
-        $this->buildParameterString( $this->parameters, $this->excludedParameters, $this->action, $this->query, $this->cacheQuery, $this->getQueryData() );
+        $this->buildParameterString( $this->parameters, $this->excludedParameters, $this->action, $this->query, $this->cacheQuery, $this->request->getParameters() );
 
         //	set outbound headers
         $this->addHeaders( $this->headers, $this->action, $this->curlOptions );
@@ -325,19 +325,19 @@ class RemoteWeb extends BaseRestService
             $cacheKey .= $splicer . $this->cacheQuery;
         }
 
-        if ( $this->cacheEnabled )
-        {
-            switch ( $this->action )
-            {
-                case static::GET:
-                    //Todo: Implement cache
+//        if ( $this->cacheEnabled )
+//        {
+//            switch ( $this->action )
+//            {
+//                case static::GET:
+//                    //Todo: Implement cache
 //                    if ( null !== $result = Platform::storeGet( $cacheKey ) )
 //                    {
 //                        return $result;
 //                    }
-                    break;
-            }
-        }
+//                    break;
+//            }
+//        }
 
         Log::debug( 'Outbound HTTP request: ' . $this->action . ': ' . $this->url );
 
@@ -367,16 +367,16 @@ class RemoteWeb extends BaseRestService
         }
 
 
-        if ( $this->cacheEnabled )
-        {
-            switch ( $this->action )
-            {
-                case static::GET:
-                    //Todo: Implement cache
-                    //Platform::storeSet( $cacheKey, $result, $this->cacheTTL );
-                    break;
-            }
-        }
+//        if ( $this->cacheEnabled )
+//        {
+//            switch ( $this->action )
+//            {
+//                case static::GET:
+//                    //Todo: Implement cache
+//                    //Platform::storeSet( $cacheKey, $result, $this->cacheTTL );
+//                    break;
+//            }
+//        }
 
         return $result;
     }
