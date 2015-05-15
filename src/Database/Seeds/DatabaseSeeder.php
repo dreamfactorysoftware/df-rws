@@ -17,36 +17,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 namespace DreamFactory\Rave\Rws\Database\Seeds;
 
-use Illuminate\Database\Seeder;
-use DreamFactory\Rave\Models\ServiceType;
+use DreamFactory\Rave\Database\Seeds\BaseModelSeeder;
 
-class DatabaseSeeder extends Seeder
+class DatabaseSeeder extends BaseModelSeeder
 {
-    /**
-     * Run the database seeds.
-     *
-     * @return void
-     */
-    public function run()
-    {
-        if ( !ServiceType::whereName( 'rws' )->count() )
-        {
-            // Add the service type
-            ServiceType::create(
-                [
-                    'name'           => 'rws',
-                    'class_name'     => "DreamFactory\\Rave\\Rws\\Services\\RemoteWeb",
-                    'config_handler' => "DreamFactory\\Rave\\Rws\\Models\\RwsConfig",
-                    'label'          => 'Remote Web Service',
-                    'description'    => 'A rave service to handle Remote Web Services',
-                    'group'          => '',
-                    'singleton'      => 1
-                ]
-            );
-            $this->command->info( 'RWS service type seeded!' );
-        }
-    }
+    protected $modelClass = 'DreamFactory\\Rave\\Models\\ServiceType';
+
+    protected $records = [
+        [
+            'name'           => 'rws',
+            'class_name'     => "DreamFactory\\Rave\\Rws\\Services\\RemoteWeb",
+            'config_handler' => "DreamFactory\\Rave\\Rws\\Models\\RwsConfig",
+            'label'          => 'Remote Web Service',
+            'description'    => 'A rave service to handle Remote Web Services',
+            'group'          => '',
+            'singleton'      => 1
+        ]
+    ];
 }
