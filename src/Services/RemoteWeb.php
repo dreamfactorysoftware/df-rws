@@ -20,6 +20,9 @@
 
 namespace DreamFactory\Rave\Rws\Services;
 
+use DreamFactory\Rave\Contracts\ServiceResponseInterface;
+use DreamFactory\Rave\Enums\DataFormats;
+use DreamFactory\Rave\Utility\ResponseFactory;
 use Log;
 use Config;
 use DreamFactory\Library\Utility\Curl;
@@ -73,7 +76,7 @@ class RemoteWeb extends BaseRestService
     /**
      * @var array
      */
-    protected $curlOptions = array();
+    protected $curlOptions = [];
 
     //*************************************************************************
     //* Methods
@@ -93,7 +96,7 @@ class RemoteWeb extends BaseRestService
         $this->query = '';
         $this->_cacheQuery = '';
 
-        $config = ArrayUtils::get($settings, 'config', array());
+        $config = ArrayUtils::get($settings, 'config', []);
         $this->baseUrl = ArrayUtils::get($config, 'base_url');
 
         // Validate url setup
@@ -101,8 +104,8 @@ class RemoteWeb extends BaseRestService
         {
             throw new \InvalidArgumentException( 'Remote Web Service base url can not be empty.' );
         }
-        $this->parameters = ArrayUtils::clean(ArrayUtils::get($config, 'parameters', array()));
-        $this->headers = ArrayUtils::clean(ArrayUtils::get($config, 'headers', array()));
+        $this->parameters = ArrayUtils::clean(ArrayUtils::get($config, 'parameters', []));
+        $this->headers = ArrayUtils::clean(ArrayUtils::get($config, 'headers', []));
         $this->setExcludedParameters($config);
 
         $this->cacheEnabled = intval(ArrayUtils::get($config, 'cache_enabled', 0));
@@ -116,7 +119,7 @@ class RemoteWeb extends BaseRestService
      */
     protected function setExcludedParameters($config)
     {
-        $params = ArrayUtils::clean(ArrayUtils::get($config, 'parameters', array()));
+        $params = ArrayUtils::clean(ArrayUtils::get($config, 'parameters', []));
         $this->excludedParameters = [];
 
         foreach($params as $param)
@@ -249,7 +252,7 @@ class RemoteWeb extends BaseRestService
     {
         if ( null === ArrayUtils::get( $options, CURLOPT_HTTPHEADER ) )
         {
-            $options[CURLOPT_HTTPHEADER] = array();
+            $options[CURLOPT_HTTPHEADER] = [];
         }
 
         // DSP outbound headers, additional and pass through
@@ -271,7 +274,7 @@ class RemoteWeb extends BaseRestService
                         }
                         else
                         {
-                            $_phpHeaderName = 'HTTP_' . strtoupper( str_replace( array( '-', ' ' ), array( '_', '_' ), $_name ) );
+                            $_phpHeaderName = 'HTTP_' . strtoupper( str_replace( [ '-', ' ' ], [ '_', '_' ], $_name ) );
                             $_value = ( isset( $_SERVER[$_phpHeaderName] ) ) ? $_SERVER[$_phpHeaderName] : $_value;
                         }
                     }
@@ -366,6 +369,10 @@ class RemoteWeb extends BaseRestService
             throw new RestException( $status, $result, $status );
         }
 
+        $contentType = Curl::getInfo( 'content_type' );
+        $format = DataFormats::fromMimeType($contentType);
+
+        $response = ResponseFactory::create( $result, $format, $status, $contentType );
 
 //        if ( $this->cacheEnabled )
 //        {
@@ -378,6 +385,6 @@ class RemoteWeb extends BaseRestService
 //            }
 //        }
 
-        return $result;
+        return $response;
     }
 }
