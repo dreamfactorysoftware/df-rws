@@ -27,6 +27,7 @@ use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Rave\Enums\VerbsMask;
 use DreamFactory\Rave\Services\BaseRestService;
 use DreamFactory\Rave\Exceptions\RestException;
+use DreamFactory\Library\Utility\Scalar;
 
 class RemoteWeb extends BaseRestService
 {
@@ -121,7 +122,7 @@ class RemoteWeb extends BaseRestService
 
         foreach($params as $param)
         {
-            if(true===boolval(ArrayUtils::get($param, 'exclude', 0)))
+            if(true===Scalar::boolval(ArrayUtils::get($param, 'exclude', 0)))
             {
                 $this->excludedParameters[] = $param;
             }
