@@ -32,6 +32,8 @@ class RwsConfig extends BaseServiceConfigModel
 
     protected $appends = [ 'parameters', 'headers' ];
 
+    protected $casts = [ 'cache_enabled' => 'boolean' ];
+
     protected $parameters = [];
 
     protected $headers = [];

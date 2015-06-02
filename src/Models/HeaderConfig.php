@@ -31,6 +31,8 @@ class HeaderConfig extends BaseModel
 
     protected $fillable = ['service_id', 'name', 'value', 'pass_from_client', 'action'];
 
+    protected $casts = [ 'pass_from_client' => 'boolean' ];
+
     /**
      * @var bool
      */

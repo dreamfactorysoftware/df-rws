@@ -31,6 +31,8 @@ class ParameterConfig extends BaseModel
 
     protected $fillable = ['service_id', 'name', 'value', 'exclude', 'outbound', 'cache_key', 'action'];
 
+    protected $casts = [ 'exclude' => 'boolean', 'outbound' => 'boolean', 'cache_key' => 'boolean' ];
+
     /**
      * @var bool
      */
