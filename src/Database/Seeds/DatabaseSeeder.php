@@ -1,8 +1,8 @@
 <?php
 /**
- * This file is part of the DreamFactory Rave(tm)
+ * This file is part of the DreamFactory(tm)
  *
- * DreamFactory Rave(tm) <http://github.com/dreamfactorysoftware/rave>
+ * DreamFactory(tm) <http://github.com/dreamfactorysoftware/rave>
  * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,21 +17,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-namespace DreamFactory\Rave\Rws\Database\Seeds;
+namespace DreamFactory\Core\Rws\Database\Seeds;
 
-use DreamFactory\Rave\Database\Seeds\BaseModelSeeder;
+use DreamFactory\Core\Database\Seeds\BaseModelSeeder;
 
 class DatabaseSeeder extends BaseModelSeeder
 {
-    protected $modelClass = 'DreamFactory\\Rave\\Models\\ServiceType';
+    protected $modelClass = 'DreamFactory\\Core\\Models\\ServiceType';
 
     protected $records = [
         [
             'name'           => 'rws',
-            'class_name'     => "DreamFactory\\Rave\\Rws\\Services\\RemoteWeb",
-            'config_handler' => "DreamFactory\\Rave\\Rws\\Models\\RwsConfig",
+            'class_name'     => "DreamFactory\\Core\\Rws\\Services\\RemoteWeb",
+            'config_handler' => "DreamFactory\\Core\\Rws\\Models\\RwsConfig",
             'label'          => 'Remote Web Service',
-            'description'    => 'A rave service to handle Remote Web Services',
+            'description'    => 'A service to handle Remote Web Services',
             'group'          => '',
             'singleton'      => 1
         ]

@@ -1,8 +1,8 @@
 <?php
 /**
- * This file is part of the DreamFactory Rave(tm)
+ * This file is part of the DreamFactory(tm)
  *
- * DreamFactory Rave(tm) <http://github.com/dreamfactorysoftware/rave>
+ * DreamFactory(tm) <http://github.com/dreamfactorysoftware/rave>
  * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,7 +20,7 @@
 
 use DreamFactory\Library\Utility\Enums\Verbs;
 
-class RwsTest extends \DreamFactory\Rave\Testing\TestCase
+class RwsTest extends \DreamFactory\Core\Testing\TestCase
 {
     protected static $staged = false;
 
@@ -28,12 +28,12 @@ class RwsTest extends \DreamFactory\Rave\Testing\TestCase
     {
         parent::stage();
 
-        Artisan::call( 'migrate', ['--path' => 'vendor/dreamfactory/rave-rws/database/migrations/'] );
-        Artisan::call( 'db:seed', ['--class' => 'DreamFactory\\Rave\\Rws\\Database\\Seeds\\DatabaseSeeder'] );
+        Artisan::call( 'migrate', ['--path' => 'vendor/dreamfactory/df-rws/database/migrations/'] );
+        Artisan::call( 'db:seed', ['--class' => 'DreamFactory\\Core\\Rws\\Database\\Seeds\\DatabaseSeeder'] );
 
         if(!$this->serviceExists('gmap'))
         {
-            \DreamFactory\Rave\Models\Service::create(
+            \DreamFactory\Core\Models\Service::create(
                 [
                     "name"=>"gmap",
                     "type"=>"rws",
@@ -64,7 +64,7 @@ class RwsTest extends \DreamFactory\Rave\Testing\TestCase
 
         if(!$this->serviceExists('dsp-tester'))
         {
-            \DreamFactory\Rave\Models\Service::create(
+            \DreamFactory\Core\Models\Service::create(
                 [
                     "name"=>"dsp-tester",
                     "type"=>"rws",

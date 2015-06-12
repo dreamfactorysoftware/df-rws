@@ -1,8 +1,8 @@
 <?php
 /**
- * This file is part of the DreamFactory Rave(tm)
+ * This file is part of the DreamFactory(tm)
  *
- * DreamFactory Rave(tm) <http://github.com/dreamfactorysoftware/rave>
+ * DreamFactory(tm) <http://github.com/dreamfactorysoftware/rave>
  * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,7 +18,7 @@
  * limitations under the License.
  */
 
-class RwsLocalFileServiceTest extends \DreamFactory\Rave\Testing\FileServiceTestCase
+class RwsLocalFileServiceTest extends \DreamFactory\Core\Testing\FileServiceTestCase
 {
     protected static $staged = false;
 
@@ -27,18 +27,18 @@ class RwsLocalFileServiceTest extends \DreamFactory\Rave\Testing\FileServiceTest
     {
         parent::stage();
 
-        Artisan::call( 'migrate', ['--path' => 'vendor/dreamfactory/rave-rws/database/migrations/'] );
-        Artisan::call( 'db:seed', ['--class' => 'DreamFactory\\Rave\\Rws\\Database\\Seeds\\DatabaseSeeder'] );
+        Artisan::call( 'migrate', ['--path' => 'vendor/dreamfactory/df-rws/database/migrations/'] );
+        Artisan::call( 'db:seed', ['--class' => 'DreamFactory\\Core\\Rws\\Database\\Seeds\\DatabaseSeeder'] );
 
         if(!$this->serviceExists('rave'))
         {
-            \DreamFactory\Rave\Models\Service::create(
+            \DreamFactory\Core\Models\Service::create(
                 [
                     "name"=>"rave",
                     "type"=>"rws",
                     "label"=>"Remote web service",
                     "config"=>[
-                        "base_url"=>"http://rave.local/rest",
+                        "base_url"=>"http://df.local/rest",
                         "cache_enabled"=>0
                     ]
                 ]

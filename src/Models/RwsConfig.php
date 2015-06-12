@@ -1,8 +1,8 @@
 <?php
 /**
- * This file is part of the DreamFactory Rave(tm)
+ * This file is part of the DreamFactory(tm)
  *
- * DreamFactory Rave(tm) <http://github.com/dreamfactorysoftware/rave>
+ * DreamFactory(tm) <http://github.com/dreamfactorysoftware/rave>
  * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,10 +18,10 @@
  * limitations under the License.
  */
 
-namespace DreamFactory\Rave\Rws\Models;
+namespace DreamFactory\Core\Rws\Models;
 
 use DreamFactory\Library\Utility\ArrayUtils;
-use DreamFactory\Rave\Models\BaseServiceConfigModel;
+use DreamFactory\Core\Models\BaseServiceConfigModel;
 use Guzzle\Http\Message\Header;
 
 class RwsConfig extends BaseServiceConfigModel
@@ -72,12 +72,12 @@ class RwsConfig extends BaseServiceConfigModel
 
     public function parameter()
     {
-        return $this->hasMany('DreamFactory\Rave\Rws\Models\ParameterConfig', 'service_id');
+        return $this->hasMany('DreamFactory\Core\Rws\Models\ParameterConfig', 'service_id');
     }
 
     public function header()
     {
-        return $this->hasMany('DreamFactory\Rave\Rws\Models\HeaderConfig', 'service_id');
+        return $this->hasMany('DreamFactory\Core\Rws\Models\HeaderConfig', 'service_id');
     }
 
     /**

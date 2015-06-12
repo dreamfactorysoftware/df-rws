@@ -1,8 +1,8 @@
 <?php
 /**
- * This file is part of the DreamFactory Rave(tm)
+ * This file is part of the DreamFactory(tm)
  *
- * DreamFactory Rave(tm) <http://github.com/dreamfactorysoftware/rave>
+ * DreamFactory(tm) <http://github.com/dreamfactorysoftware/rave>
  * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,21 +18,23 @@
  * limitations under the License.
  */
 
-namespace DreamFactory\Rave\Rws\Services;
+namespace DreamFactory\Core\Rws\Services;
 
-use DreamFactory\Rave\Contracts\ServiceResponseInterface;
-use DreamFactory\Rave\Enums\DataFormats;
-use DreamFactory\Rave\Utility\ResponseFactory;
+use DreamFactory\Library\Utility\Enums\Verbs;
+use DreamFactory\Core\Contracts\CachedInterface;
+use DreamFactory\Core\Enums\DataFormats;
+use DreamFactory\Core\Utility\CacheUtilities;
+use DreamFactory\Core\Utility\ResponseFactory;
 use Log;
 use Config;
 use DreamFactory\Library\Utility\Curl;
 use DreamFactory\Library\Utility\ArrayUtils;
-use DreamFactory\Rave\Enums\VerbsMask;
-use DreamFactory\Rave\Services\BaseRestService;
-use DreamFactory\Rave\Exceptions\RestException;
+use DreamFactory\Core\Enums\VerbsMask;
+use DreamFactory\Core\Services\BaseRestService;
+use DreamFactory\Core\Exceptions\RestException;
 use DreamFactory\Library\Utility\Scalar;
 
-class RemoteWeb extends BaseRestService
+class RemoteWeb extends BaseRestService implements CachedInterface
 {
     //*************************************************************************
     //* Members
@@ -110,7 +112,7 @@ class RemoteWeb extends BaseRestService
         $this->setExcludedParameters($config);
 
         $this->cacheEnabled = intval(ArrayUtils::get($config, 'cache_enabled', 0));
-        $this->cacheTTL = intval( ArrayUtils::get($config, 'cache_ttl', Config::get('rave.default_cache_ttl') ) );
+        $this->cacheTTL = intval( ArrayUtils::get($config, 'cache_ttl', Config::get('df.default_cache_ttl') ) );
     }
 
     /**
@@ -181,7 +183,7 @@ class RemoteWeb extends BaseRestService
      * @param $action
      *
      * @return bool
-     * @throws \DreamFactory\Rave\Exceptions\BadRequestException
+     * @throws \DreamFactory\Core\Exceptions\BadRequestException
      */
     protected static function doesActionApply( $config, $action )
     {
@@ -305,15 +307,22 @@ class RemoteWeb extends BaseRestService
     }
 
     /**
-     * @throws \DreamFactory\Rave\Exceptions\RestException
+     * @throws \DreamFactory\Core\Exceptions\RestException
      * @return bool
      */
     protected function processRequest()
     {
         $data = $this->request->getContent();
 
-        $resource = ( !empty( $this->resourcePath ) ? '/' . ltrim( $this->resourcePath, '/' ) : null );
-        $this->url = rtrim( $this->baseUrl, '/' ) . $resource;
+        $resource = ( !empty( $this->resourcePath ) ? ltrim( $this->resourcePath, '/' ) : null );
+        if ( $resource )
+        {
+            $this->url = rtrim( $this->baseUrl, '/' ) . '/' . $resource;
+        }
+        else
+        {
+            $this->url = $this->baseUrl;
+        }
 
         if ( !empty( $this->query ) )
         {
@@ -322,26 +331,29 @@ class RemoteWeb extends BaseRestService
         }
 
         // build cache_key
-        $cacheKey = $this->action . ':' . $this->name . $resource;
+        $cacheKey = $this->action . ':' . $this->name;
+        if ( $resource )
+        {
+            $cacheKey .= ':' . $resource;
+        }
         if ( !empty( $this->cacheQuery ) )
         {
-            $splicer = ( false === strpos( $cacheKey, '?' ) ) ? '?' : '&';
-            $cacheKey .= $splicer . $this->cacheQuery;
+            $cacheKey .= ':' . $this->cacheQuery;
         }
+        $cacheKey = hash( 'sha256', $cacheKey );
 
-//        if ( $this->cacheEnabled )
-//        {
-//            switch ( $this->action )
-//            {
-//                case static::GET:
-//                    //Todo: Implement cache
-//                    if ( null !== $result = Platform::storeGet( $cacheKey ) )
-//                    {
-//                        return $result;
-//                    }
-//                    break;
-//            }
-//        }
+        if ( $this->cacheEnabled )
+        {
+            switch ( $this->action )
+            {
+                case Verbs::GET:
+                    if ( null !== $result = CacheUtilities::getByServiceId( $this->id, $cacheKey ) )
+                    {
+                        return $result;
+                    }
+                    break;
+            }
+        }
 
         Log::debug( 'Outbound HTTP request: ' . $this->action . ': ' . $this->url );
 
@@ -375,17 +387,24 @@ class RemoteWeb extends BaseRestService
 
         $response = ResponseFactory::create( $result, $format, $status, $contentType );
 
-//        if ( $this->cacheEnabled )
-//        {
-//            switch ( $this->action )
-//            {
-//                case static::GET:
-//                    //Todo: Implement cache
-//                    //Platform::storeSet( $cacheKey, $result, $this->cacheTTL );
-//                    break;
-//            }
-//        }
+        if ( $this->cacheEnabled )
+        {
+            switch ( $this->action )
+            {
+                case Verbs::GET:
+                    CacheUtilities::putByServiceId( $this->id, $cacheKey, $result, $this->cacheTTL );
+                    break;
+            }
+        }
 
         return $response;
+    }
+
+    /**
+     * Clears the cache produced by the swagger annotations
+     */
+    public function flush()
+    {
+        CacheUtilities::forgetAllByTypeAndId( 'service', $this->id );
     }
 }
