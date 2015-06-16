@@ -3,23 +3,23 @@
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Migrations\Migration;
 
-class CreateRemoteWebServiceTables extends Migration {
+class CreateRemoteWebServiceTables extends Migration
+{
 
-	/**
-	 * Run the migrations.
-	 *
-	 * @return void
-	 */
-	public function up()
-	{
-		//RWS config table
+    /**
+     * Run the migrations.
+     *
+     * @return void
+     */
+    public function up()
+    {
+        //RWS config table
         Schema::create(
             'rws_config',
-            function ( Blueprint $t )
-            {
-                $t->integer( 'service_id' )->unsigned()->primary();
-                $t->foreign( 'service_id' )->references( 'id' )->on( 'service' )->onDelete( 'cascade' );
-                $t->string( 'base_url' )->nullable();
+            function (Blueprint $t){
+                $t->integer('service_id')->unsigned()->primary();
+                $t->foreign('service_id')->references('id')->on('service')->onDelete('cascade');
+                $t->string('base_url')->nullable();
                 $t->boolean('cache_enabled')->default(0);
                 $t->integer('cache_ttl')->default(0);
             }
@@ -28,8 +28,7 @@ class CreateRemoteWebServiceTables extends Migration {
         //RWS param config table
         Schema::create(
             'rws_parameters_config',
-            function( Blueprint $t)
-            {
+            function (Blueprint $t){
                 $t->increments('id');
                 $t->integer('service_id')->unsigned();
                 $t->foreign('service_id')->references('service_id')->on('rws_config')->onDelete('cascade');
@@ -45,8 +44,7 @@ class CreateRemoteWebServiceTables extends Migration {
         //RWS header config table
         Schema::create(
             'rws_headers_config',
-            function(Blueprint $t)
-            {
+            function (Blueprint $t){
                 $t->increments('id');
                 $t->integer('service_id')->unsigned();
                 $t->foreign('service_id')->references('service_id')->on('rws_config')->onDelete('cascade');
@@ -56,23 +54,22 @@ class CreateRemoteWebServiceTables extends Migration {
                 $t->integer('action')->default(0);
             }
         );
-	}
+    }
 
-	/**
-	 * Reverse the migrations.
-	 *
-	 * @return void
-	 */
-	public function down()
-	{
-		//RWS config table
-        Schema::dropIfExists( 'rws_config' );
+    /**
+     * Reverse the migrations.
+     *
+     * @return void
+     */
+    public function down()
+    {
+        //RWS config table
+        Schema::dropIfExists('rws_config');
 
         //RWS parameters config table
         Schema::dropIfExists('rws_parameters_config');
 
         //RWS headers config table
         Schema::dropIfExists('rws_headers_config');
-	}
-
+    }
 }

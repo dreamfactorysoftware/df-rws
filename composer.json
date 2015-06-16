@@ -34,9 +34,9 @@
   "require": {
     "dreamfactory/df-core": "dev-develop as dev-master"
   },
-  "autoload":{
+  "autoload": {
     "psr-4": {
-      "DreamFactory\\Core\\Rws\\":"src/"
+      "DreamFactory\\Core\\Rws\\": "src/"
     }
   }
 }
