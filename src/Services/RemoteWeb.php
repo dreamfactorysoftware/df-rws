@@ -1,19 +1,18 @@
 <?php
 namespace DreamFactory\Core\Rws\Services;
 
+use Log;
+use Config;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Core\Contracts\CachedInterface;
 use DreamFactory\Core\Enums\DataFormats;
 use DreamFactory\Core\Utility\CacheUtilities;
 use DreamFactory\Core\Utility\ResponseFactory;
-use Log;
-use Config;
 use DreamFactory\Library\Utility\Curl;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Enums\VerbsMask;
 use DreamFactory\Core\Services\BaseRestService;
 use DreamFactory\Core\Exceptions\RestException;
-use DreamFactory\Library\Utility\Scalar;
 
 class RemoteWeb extends BaseRestService implements CachedInterface
 {
@@ -106,7 +105,7 @@ class RemoteWeb extends BaseRestService implements CachedInterface
         $this->excludedParameters = [];
 
         foreach ($params as $param) {
-            if (true === Scalar::boolval(ArrayUtils::get($param, 'exclude', 0))) {
+            if (true === ArrayUtils::getBool($param, 'exclude', 0)) {
                 $this->excludedParameters[] = $param;
             }
         }
