@@ -11,7 +11,7 @@ class RwsTest extends \DreamFactory\Core\Testing\TestCase
         parent::stage();
 
         Artisan::call('migrate', ['--path' => 'vendor/dreamfactory/df-rws/database/migrations/']);
-        Artisan::call('db:seed', ['--class' => 'DreamFactory\\Core\\Rws\\Database\\Seeds\\DatabaseSeeder']);
+        Artisan::call('db:seed', ['--class' => DreamFactory\Core\Rws\Database\Seeds\DatabaseSeeder::class]);
 
         if (!$this->serviceExists('gmap')) {
             \DreamFactory\Core\Models\Service::create(

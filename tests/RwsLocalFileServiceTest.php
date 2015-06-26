@@ -9,7 +9,7 @@ class RwsLocalFileServiceTest extends \DreamFactory\Core\Testing\FileServiceTest
         parent::stage();
 
         Artisan::call('migrate', ['--path' => 'vendor/dreamfactory/df-rws/database/migrations/']);
-        Artisan::call('db:seed', ['--class' => 'DreamFactory\\Core\\Rws\\Database\\Seeds\\DatabaseSeeder']);
+        Artisan::call('db:seed', ['--class' => DreamFactory\Core\Rws\Database\Seeds\DatabaseSeeder::class]);
 
         if (!$this->serviceExists('rave')) {
             \DreamFactory\Core\Models\Service::create(

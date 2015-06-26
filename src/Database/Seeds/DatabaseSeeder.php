@@ -2,16 +2,19 @@
 namespace DreamFactory\Core\Rws\Database\Seeds;
 
 use DreamFactory\Core\Database\Seeds\BaseModelSeeder;
+use DreamFactory\Core\Models\ServiceType;
+use DreamFactory\Core\Rws\Models\RwsConfig;
+use DreamFactory\Core\Rws\Services\RemoteWeb;
 
 class DatabaseSeeder extends BaseModelSeeder
 {
-    protected $modelClass = 'DreamFactory\\Core\\Models\\ServiceType';
+    protected $modelClass = ServiceType::class;
 
     protected $records = [
         [
             'name'           => 'rws',
-            'class_name'     => "DreamFactory\\Core\\Rws\\Services\\RemoteWeb",
-            'config_handler' => "DreamFactory\\Core\\Rws\\Models\\RwsConfig",
+            'class_name'     => RemoteWeb::class,
+            'config_handler' => RwsConfig::class,
             'label'          => 'Remote Web Service',
             'description'    => 'A service to handle Remote Web Services',
             'group'          => '',
