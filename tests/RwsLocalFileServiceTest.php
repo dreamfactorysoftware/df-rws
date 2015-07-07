@@ -19,7 +19,7 @@ class RwsLocalFileServiceTest extends \DreamFactory\Core\Testing\FileServiceTest
                     "label"  => "Remote web service",
                     "config" => [
                         "base_url"      => "http://df.local/rest",
-                        "cache_enabled" => 0
+                        "cache_enabled" => false
                     ]
                 ]
             );

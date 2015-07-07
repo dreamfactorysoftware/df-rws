@@ -21,20 +21,20 @@ class RwsTest extends \DreamFactory\Core\Testing\TestCase
                     "label"  => "Remote web service",
                     "config" => [
                         "base_url"      => "http://maps.googleapis.com/maps/api/directions/json",
-                        "cache_enabled" => 0,
+                        "cache_enabled" => false,
                         "parameters"    => [
                             [
                                 "name"      => "origin",
                                 "value"     => "5965 Willow Oak Pass, Cumming, GA 30040",
-                                "outbound"  => 1,
-                                "cache_key" => 1,
+                                "outbound"  => true,
+                                "cache_key" => true,
                                 "action"    => 31
                             ],
                             [
                                 "name"      => "destination",
                                 "value"     => "3600 Mansell Rd. Alpharetta, GA",
-                                "outbound"  => 1,
-                                "cache_key" => 1,
+                                "outbound"  => true,
+                                "cache_key" => true,
                                 "action"    => 31
                             ]
                         ]
@@ -51,23 +51,23 @@ class RwsTest extends \DreamFactory\Core\Testing\TestCase
                     "label"  => "Remote web service",
                     "config" => [
                         "base_url"      => "https://dsp-tester.cloud.dreamfactory.com/rest",
-                        "cache_enabled" => 0,
+                        "cache_enabled" => false,
                         "headers"       => [
                             [
                                 "name"             => "Authorization",
                                 "value"            => "Basic YXJpZmlzbGFtQGRyZWFtZmFjdG9yeS5jb206dGVzdCEyMzQ=",
-                                "pass_from_client" => 0,
+                                "pass_from_client" => false,
                                 "action"           => 31
                             ],
                             [
                                 "name"             => "X-DreamFactory-Application-Name",
                                 "value"            => "admin",
-                                "pass_from_client" => 0,
+                                "pass_from_client" => false,
                                 "action"           => 31
                             ],
                             [
                                 "name"             => "X-HTTP-Method",
-                                "pass_from_client" => 1,
+                                "pass_from_client" => true,
                                 "action"           => 31
                             ]
                         ]

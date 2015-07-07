@@ -48,12 +48,12 @@ class RwsConfig extends BaseServiceConfigModel
 
     public function parameter()
     {
-        return $this->hasMany('DreamFactory\Core\Rws\Models\ParameterConfig', 'service_id');
+        return $this->hasMany(ParameterConfig::class, 'service_id');
     }
 
     public function header()
     {
-        return $this->hasMany('DreamFactory\Core\Rws\Models\HeaderConfig', 'service_id');
+        return $this->hasMany(HeaderConfig::class, 'service_id');
     }
 
     /**
