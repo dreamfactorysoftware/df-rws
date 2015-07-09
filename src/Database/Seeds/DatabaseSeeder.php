@@ -17,7 +17,7 @@ class DatabaseSeeder extends BaseModelSeeder
             'config_handler' => RwsConfig::class,
             'label'          => 'Remote Web Service',
             'description'    => 'A service to handle Remote Web Services',
-            'group'          => 'Web',
+            'group'          => 'Custom',
             'singleton'      => false
         ]
     ];
