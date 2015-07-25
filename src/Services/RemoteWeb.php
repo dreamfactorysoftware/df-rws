@@ -77,7 +77,7 @@ class RemoteWeb extends BaseRestService implements CachedInterface
         parent::__construct($settings);
         $this->autoDispatch = false;
         $this->query = '';
-        $this->_cacheQuery = '';
+        $this->cacheQuery = '';
 
         $config = ArrayUtils::get($settings, 'config', []);
         $this->baseUrl = ArrayUtils::get($config, 'base_url');
@@ -134,21 +134,21 @@ class RemoteWeb extends BaseRestService implements CachedInterface
             }
         } else {
             //Session::replaceLookups( $value, true );
-            $_part = urlencode($name);
+            $part = urlencode($name);
             if (!empty($value)) {
-                $_part .= '=' . urlencode($value);
+                $part .= '=' . urlencode($value);
             }
             if ($add_to_query) {
                 if (!empty($query)) {
                     $query .= '&';
                 }
-                $query .= $_part;
+                $query .= $part;
             }
             if ($add_to_key) {
                 if (!empty($key)) {
                     $key .= '&';
                 }
-                $key .= $_part;
+                $key .= $part;
             }
         }
     }
@@ -187,32 +187,32 @@ class RemoteWeb extends BaseRestService implements CachedInterface
     ){
         // inbound parameters from request to be passed on
 
-        foreach ($requestQuery as $_name => $_value) {
-            $_outbound = true;
-            $_addToCacheKey = true;
+        foreach ($requestQuery as $name => $value) {
+            $outbound = true;
+            $addToCacheKey = true;
             // unless excluded
-            foreach ($exclusions as $_exclusion) {
-                if (0 === strcasecmp($_name, strval(ArrayUtils::get($_exclusion, 'name')))) {
-                    if (static::doesActionApply($_exclusion, $action)) {
-                        $_outbound = !ArrayUtils::getBool($_exclusion, 'outbound', true);
-                        $_addToCacheKey = !ArrayUtils::getBool($_exclusion, 'cache_key', true);
+            foreach ($exclusions as $exclusion) {
+                if (0 === strcasecmp($name, strval(ArrayUtils::get($exclusion, 'name')))) {
+                    if (static::doesActionApply($exclusion, $action)) {
+                        $outbound = !ArrayUtils::getBool($exclusion, 'outbound', true);
+                        $addToCacheKey = !ArrayUtils::getBool($exclusion, 'cache_key', true);
                     }
                 }
             }
 
-            static::parseArrayParameter($query, $cache_key, $_name, $_value, $_outbound, $_addToCacheKey);
+            static::parseArrayParameter($query, $cache_key, $name, $value, $outbound, $addToCacheKey);
         }
 
         // DSP additional outbound parameters
         if (!empty($parameters)) {
-            foreach ($parameters as $_param) {
-                if (static::doesActionApply($_param, $action)) {
-                    $_name = ArrayUtils::get($_param, 'name');
-                    $_value = ArrayUtils::get($_param, 'value');
-                    $_outbound = ArrayUtils::getBool($_param, 'outbound', true);
-                    $_addToCacheKey = ArrayUtils::getBool($_param, 'cache_key', true);
+            foreach ($parameters as $param) {
+                if (static::doesActionApply($param, $action)) {
+                    $name = ArrayUtils::get($param, 'name');
+                    $value = ArrayUtils::get($param, 'value');
+                    $outbound = ArrayUtils::getBool($param, 'outbound', true);
+                    $addToCacheKey = ArrayUtils::getBool($param, 'cache_key', true);
 
-                    static::parseArrayParameter($query, $cache_key, $_name, $_value, $_outbound, $_addToCacheKey);
+                    static::parseArrayParameter($query, $cache_key, $name, $value, $outbound, $addToCacheKey);
                 }
             }
         }
@@ -233,24 +233,24 @@ class RemoteWeb extends BaseRestService implements CachedInterface
 
         // DSP outbound headers, additional and pass through
         if (!empty($headers)) {
-            foreach ($headers as $_header) {
-                if (static::doesActionApply($_header, $action)) {
-                    $_name = ArrayUtils::get($_header, 'name');
-                    $_value = ArrayUtils::get($_header, 'value');
-                    if (ArrayUtils::getBool($_header, 'pass_from_client')) {
+            foreach ($headers as $header) {
+                if (static::doesActionApply($header, $action)) {
+                    $name = ArrayUtils::get($header, 'name');
+                    $value = ArrayUtils::get($header, 'value');
+                    if (ArrayUtils::getBool($header, 'pass_from_client')) {
                         // Check for Basic Auth pulled into server variable already
-                        if ((0 === strcasecmp($_name, 'Authorization')) &&
+                        if ((0 === strcasecmp($name, 'Authorization')) &&
                             (isset($_SERVER['PHP_AUTH_USER']) && isset($_SERVER['PHP_AUTH_PW']))
                         ) {
-                            $_value =
+                            $value =
                                 'Basic ' . base64_encode($_SERVER['PHP_AUTH_USER'] . ':' . $_SERVER['PHP_AUTH_PW']);
                         } else {
-                            $_phpHeaderName = 'HTTP_' . strtoupper(str_replace(['-', ' '], ['_', '_'], $_name));
-                            $_value = (isset($_SERVER[$_phpHeaderName])) ? $_SERVER[$_phpHeaderName] : $_value;
+                            $phpHeaderName = 'HTTP_' . strtoupper(str_replace(['-', ' '], ['_', '_'], $name));
+                            $value = (isset($_SERVER[$phpHeaderName])) ? $_SERVER[$phpHeaderName] : $value;
                         }
                     }
-                    //Session::replaceLookups( $_value, true );
-                    $options[CURLOPT_HTTPHEADER][] = $_name . ': ' . $_value;
+                    //Session::replaceLookups( $value, true );
+                    $options[CURLOPT_HTTPHEADER][] = $name . ': ' . $value;
                 }
             }
         }
