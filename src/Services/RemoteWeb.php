@@ -1,6 +1,7 @@
 <?php
 namespace DreamFactory\Core\Rws\Services;
 
+use DreamFactory\Core\Utility\Session;
 use Log;
 use Config;
 use DreamFactory\Core\Contracts\CachedInterface;
@@ -133,7 +134,7 @@ class RemoteWeb extends BaseRestService implements CachedInterface
                     $add_to_key);
             }
         } else {
-            //Session::replaceLookups( $value, true );
+            Session::replaceLookups( $value, true );
             $part = urlencode($name);
             if (!empty($value)) {
                 $part .= '=' . urlencode($value);
@@ -249,7 +250,7 @@ class RemoteWeb extends BaseRestService implements CachedInterface
                             $value = (isset($_SERVER[$phpHeaderName])) ? $_SERVER[$phpHeaderName] : $value;
                         }
                     }
-                    //Session::replaceLookups( $value, true );
+                    Session::replaceLookups( $value, true );
                     $options[CURLOPT_HTTPHEADER][] = $name . ': ' . $value;
                 }
             }
