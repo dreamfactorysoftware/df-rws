@@ -69,7 +69,7 @@ class HeaderConfig extends BaseServiceConfigModel
     {
         static::whereServiceId($id)->delete();
         if (!empty($config)) {
-            foreach($config as $header) {
+            foreach ($config as $header) {
                 //Making sure service_id is the first item in the config.
                 //This way service_id will be set first and is available
                 //for use right away. This helps setting an auto-generated
@@ -87,7 +87,15 @@ class HeaderConfig extends BaseServiceConfigModel
      */
     public static function getConfigSchema()
     {
-        $schema = ['name' => 'headers', 'type' => 'array', 'required' => false, 'allow_null' => true];
+        $schema =
+            [
+                'name'        => 'headers',
+                'label'       => 'Headers',
+                'description' => 'Supply additional headers to pass to the remote service.',
+                'type'        => 'array',
+                'required'    => false,
+                'allow_null'  => true
+            ];
         $schema['items'] = parent::getConfigSchema();
 
         return $schema;

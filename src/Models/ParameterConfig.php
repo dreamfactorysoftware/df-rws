@@ -23,12 +23,13 @@ class ParameterConfig extends BaseServiceConfigModel
 
     protected $fillable = ['service_id', 'name', 'value', 'exclude', 'outbound', 'cache_key', 'action'];
 
-    protected $casts = ['exclude'    => 'boolean',
-                        'outbound'   => 'boolean',
-                        'cache_key'  => 'boolean',
-                        'id'         => 'integer',
-                        'service_id' => 'integer',
-                        'action'     => 'integer'
+    protected $casts = [
+        'exclude'    => 'boolean',
+        'outbound'   => 'boolean',
+        'cache_key'  => 'boolean',
+        'id'         => 'integer',
+        'service_id' => 'integer',
+        'action'     => 'integer'
     ];
 
     /**
@@ -72,7 +73,7 @@ class ParameterConfig extends BaseServiceConfigModel
     {
         static::whereServiceId($id)->delete();
         if (!empty($config)) {
-            foreach($config as $param) {
+            foreach ($config as $param) {
                 //Making sure service_id is the first item in the config.
                 //This way service_id will be set first and is available
                 //for use right away. This helps setting an auto-generated
@@ -90,7 +91,15 @@ class ParameterConfig extends BaseServiceConfigModel
      */
     public static function getConfigSchema()
     {
-        $schema = ['name' => 'parameters', 'type' => 'array', 'required' => false, 'allow_null' => true];
+        $schema =
+            [
+                'name'        => 'parameters',
+                'label'       => 'Parameters',
+                'description' => 'Supply additional parameters to pass to the remote service, or exclude parameters passed from client.',
+                'type'        => 'array',
+                'required'    => false,
+                'allow_null'  => true
+            ];
         $schema['items'] = parent::getConfigSchema();
 
         return $schema;
