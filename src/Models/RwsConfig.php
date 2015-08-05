@@ -3,6 +3,7 @@ namespace DreamFactory\Core\Rws\Models;
 
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Models\BaseServiceConfigModel;
+use DreamFactory\Core\Models\ServiceCacheConfig;
 use Guzzle\Http\Message\Header;
 
 class RwsConfig extends BaseServiceConfigModel
@@ -20,10 +21,13 @@ class RwsConfig extends BaseServiceConfigModel
     {
         $config = parent::getConfig($id);
 
-        $params = ParameterConfig::whereServiceId($id);
+        $params = ParameterConfig::whereServiceId($id)->get();
         $config['parameters'] = (empty($params)) ? [] : $params->toArray();
-        $headers = HeaderConfig::whereServiceId($id);
+        $headers = HeaderConfig::whereServiceId($id)->get();
         $config['headers'] = (empty($headers)) ? [] : $headers->toArray();
+        $cacheConfig = ServiceCacheConfig::whereServiceId($id)->first();
+        $config['cache_enabled'] = (empty($cacheConfig)) ? false : $cacheConfig->getAttribute('cache_enabled');
+        $config['cache_ttl'] = (empty($cacheConfig)) ? 0 : $cacheConfig->getAttribute('cache_ttl');
 
         return $config;
     }
@@ -71,12 +75,26 @@ class RwsConfig extends BaseServiceConfigModel
             }
             ParameterConfig::setConfig($id, $params);
         }
+
         if (isset($config['headers'])) {
             $headers = $config['headers'];
             if (!is_array($headers)) {
                 throw new BadRequestException('Web service headers must be an array.');
             }
             HeaderConfig::setConfig($id, $headers);
+        }
+
+        $cache = [];
+        if (isset($config['cache_enabled'])) {
+            $cache['cache_enabled'] = $config['cache_enabled'];
+            unset($config['cache_enabled']);
+        }
+        if (isset($config['cache_ttl'])) {
+            $cache['cache_ttl'] = $config['cache_ttl'];
+            unset($config['cache_ttl']);
+        }
+        if (!empty($cache)) {
+            ServiceCacheConfig::setConfig($id, $cache);
         }
 
         parent::setConfig($id, $config);
@@ -90,6 +108,7 @@ class RwsConfig extends BaseServiceConfigModel
         $schema = parent::getConfigSchema();
         $schema[] = ParameterConfig::getConfigSchema();
         $schema[] = HeaderConfig::getConfigSchema();
+        $schema = array_merge($schema, ServiceCacheConfig::getConfigSchema());
 
         return $schema;
     }

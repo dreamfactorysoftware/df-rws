@@ -1,12 +1,12 @@
 <?php
 namespace DreamFactory\Core\Rws\Services;
 
+use DreamFactory\Core\Components\Cacheable;
 use DreamFactory\Core\Utility\Session;
 use Log;
 use Config;
 use DreamFactory\Core\Contracts\CachedInterface;
 use DreamFactory\Core\Enums\DataFormats;
-use DreamFactory\Core\Utility\CacheUtilities;
 use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Core\Enums\VerbsMask;
 use DreamFactory\Core\Services\BaseRestService;
@@ -17,6 +17,8 @@ use DreamFactory\Library\Utility\Enums\Verbs;
 
 class RemoteWeb extends BaseRestService implements CachedInterface
 {
+    use Cacheable;
+
     //*************************************************************************
     //* Members
     //*************************************************************************
@@ -37,14 +39,6 @@ class RemoteWeb extends BaseRestService implements CachedInterface
      * @var array
      */
     protected $excludedParameters;
-    /**
-     * @var bool
-     */
-    protected $cacheEnabled;
-    /**
-     * @var int
-     */
-    protected $cacheTTL;
     /**
      * @var string
      */
@@ -91,8 +85,9 @@ class RemoteWeb extends BaseRestService implements CachedInterface
         $this->headers = ArrayUtils::clean(ArrayUtils::get($config, 'headers', []));
         $this->setExcludedParameters($config);
 
-        $this->cacheEnabled = intval(ArrayUtils::get($config, 'cache_enabled', 0));
+        $this->cacheEnabled = ArrayUtils::getBool($config, 'cache_enabled');
         $this->cacheTTL = intval(ArrayUtils::get($config, 'cache_ttl', Config::get('df.default_cache_ttl')));
+        $this->cachePrefix = 'service' . $this->id . ':';
     }
 
     /**
@@ -175,6 +170,7 @@ class RemoteWeb extends BaseRestService implements CachedInterface
      * @param string $action
      * @param string $query
      * @param string $cache_key
+     * @param array  $requestQuery
      *
      * @return void
      */
@@ -309,7 +305,7 @@ class RemoteWeb extends BaseRestService implements CachedInterface
         if ($this->cacheEnabled) {
             switch ($this->action) {
                 case Verbs::GET:
-                    if (null !== $result = CacheUtilities::getByServiceId($this->id, $cacheKey)) {
+                    if (null !== $result = $this->getFromCache($cacheKey)) {
                         return $result;
                     }
                     break;
@@ -348,19 +344,11 @@ class RemoteWeb extends BaseRestService implements CachedInterface
         if ($this->cacheEnabled) {
             switch ($this->action) {
                 case Verbs::GET:
-                    CacheUtilities::putByServiceId($this->id, $cacheKey, $result, $this->cacheTTL);
+                    $this->addToCache($cacheKey, $result);
                     break;
             }
         }
 
         return $response;
-    }
-
-    /**
-     * Clears the cache produced by the swagger annotations
-     */
-    public function flush()
-    {
-        CacheUtilities::forgetAllByTypeAndId('service', $this->id);
     }
 }
