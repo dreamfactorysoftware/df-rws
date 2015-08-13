@@ -129,7 +129,7 @@ class RemoteWeb extends BaseRestService implements CachedInterface
                     $add_to_key);
             }
         } else {
-            Session::replaceLookups( $value, true );
+            Session::replaceLookups($value, true);
             $part = urlencode($name);
             if (!empty($value)) {
                 $part .= '=' . urlencode($value);
@@ -246,7 +246,7 @@ class RemoteWeb extends BaseRestService implements CachedInterface
                             $value = (isset($_SERVER[$phpHeaderName])) ? $_SERVER[$phpHeaderName] : $value;
                         }
                     }
-                    Session::replaceLookups( $value, true );
+                    Session::replaceLookups($value, true);
                     $options[CURLOPT_HTTPHEADER][] = $name . ': ' . $value;
                 }
             }
@@ -350,5 +350,21 @@ class RemoteWeb extends BaseRestService implements CachedInterface
         }
 
         return $response;
+    }
+
+    public function getApiDocModels()
+    {
+        return [];
+    }
+
+    public function getApiDocInfo()
+    {
+        return [
+            'resourcePath' => '/' . $this->name,
+            'produces'     => ['application/json', 'application/xml'],
+            'consumes'     => ['application/json', 'application/xml'],
+            'apis'         => [],
+            'models'       => [],
+        ];
     }
 }
