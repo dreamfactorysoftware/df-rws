@@ -337,4 +337,20 @@ class RemoteWeb extends BaseRestService implements CachedInterface
 
         return $response;
     }
+
+    public function getApiDocModels()
+    {
+        return [];
+    }
+
+    public function getApiDocInfo()
+    {
+        return [
+            'resourcePath' => '/' . $this->name,
+            'produces'     => ['application/json', 'application/xml'],
+            'consumes'     => ['application/json', 'application/xml'],
+            'apis'         => [],
+            'models'       => [],
+        ];
+    }
 }
