@@ -2,6 +2,7 @@
 namespace DreamFactory\Core\Rws\Services;
 
 use DreamFactory\Core\Components\Cacheable;
+use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Utility\Session;
 use Log;
 use Config;
@@ -341,19 +342,8 @@ class RemoteWeb extends BaseRestService implements CachedInterface
         return $response;
     }
 
-    public function getApiDocModels()
+    public static function getApiDocInfo(Service $service)
     {
-        return [];
-    }
-
-    public function getApiDocInfo()
-    {
-        return [
-            'resourcePath' => '/' . $this->name,
-            'produces'     => ['application/json', 'application/xml'],
-            'consumes'     => ['application/json', 'application/xml'],
-            'apis'         => [],
-            'models'       => [],
-        ];
+        return ['paths' => [], 'definitions' => []];
     }
 }
