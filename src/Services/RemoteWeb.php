@@ -230,9 +230,11 @@ class RemoteWeb extends BaseRestService implements CachedInterface
                         } else {
                             $phpHeaderName = strtoupper(str_replace(['-', ' '], ['_', '_'], $name));
                             // check for non-standard headers (prefix HTTP_) and standard headers like Content-Type
-                            $value =
-                                (isset($_SERVER['HTTP_' . $phpHeaderName])) ? $_SERVER['HTTP_' . $phpHeaderName]
-                                    : (isset($_SERVER[$phpHeaderName])) ? $_SERVER[$phpHeaderName] : $value;
+                            if (isset($_SERVER['HTTP_' . $phpHeaderName])) {
+                                $value = $_SERVER['HTTP_' . $phpHeaderName];
+                            } elseif (isset($_SERVER[$phpHeaderName])) {
+                                $value = $_SERVER[$phpHeaderName];
+                            }
                         }
                     }
                     Session::replaceLookups($value, true);
