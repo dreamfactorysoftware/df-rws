@@ -1,20 +1,19 @@
-<?php
-namespace DreamFactory\Core\Rws\Services;
+<?php namespace DreamFactory\Core\Rws\Services;
 
-use DreamFactory\Core\Components\Cacheable;
-use DreamFactory\Core\Models\Service;
-use DreamFactory\Core\Utility\Session;
-use Log;
 use Config;
+use DreamFactory\Core\Components\Cacheable;
 use DreamFactory\Core\Contracts\CachedInterface;
 use DreamFactory\Core\Enums\DataFormats;
-use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Core\Enums\VerbsMask;
-use DreamFactory\Core\Services\BaseRestService;
 use DreamFactory\Core\Exceptions\RestException;
+use DreamFactory\Core\Models\Service;
+use DreamFactory\Core\Services\BaseRestService;
+use DreamFactory\Core\Utility\ResponseFactory;
+use DreamFactory\Core\Utility\Session;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Curl;
 use DreamFactory\Library\Utility\Enums\Verbs;
+use Log;
 
 class RemoteWeb extends BaseRestService implements CachedInterface
 {
@@ -56,6 +55,14 @@ class RemoteWeb extends BaseRestService implements CachedInterface
      * @var array
      */
     protected $curlOptions = [];
+    /**
+     * @type string The proxy to use, if any. Format is "host:port": "localhost:8888" or "proxy.nyc.example.com:9090"
+     */
+    protected $proxy;
+    /**
+     * @type string A "user:pass" to send to the proxy if authentication is required for use
+     */
+    protected $proxyCredentials;
 
     //*************************************************************************
     //* Methods
@@ -77,6 +84,9 @@ class RemoteWeb extends BaseRestService implements CachedInterface
 
         $config = ArrayUtils::get($settings, 'config', []);
         $this->baseUrl = ArrayUtils::get($config, 'base_url');
+        $this->curlOptions = ArrayUtils::get($config, 'curl_options', []);
+        $this->proxy = ArrayUtils::get($config, 'proxy');
+        $this->proxyCredentials = ArrayUtils::get($config, 'proxy_credentials');
 
         // Validate url setup
         if (empty($this->baseUrl)) {
@@ -98,17 +108,15 @@ class RemoteWeb extends BaseRestService implements CachedInterface
      * @param bool $add_to_query
      * @param bool $add_to_key
      */
-    protected static function parseArrayParameter(
-        &$query,
-        &$key,
-        $name,
-        $value,
-        $add_to_query = true,
-        $add_to_key = true
-    ){
+    protected static function parseArrayParameter(&$query, &$key, $name, $value, $add_to_query = true, $add_to_key = true)
+    {
         if (is_array($value)) {
             foreach ($value as $sub => $subValue) {
-                static::parseArrayParameter($query, $cache_key, $name . '[' . $sub . ']', $subValue, $add_to_query,
+                static::parseArrayParameter($query,
+                    $cache_key,
+                    $name . '[' . $sub . ']',
+                    $subValue,
+                    $add_to_query,
                     $add_to_key);
             }
         } else {
@@ -156,13 +164,8 @@ class RemoteWeb extends BaseRestService implements CachedInterface
      *
      * @return void
      */
-    protected static function buildParameterString(
-        $parameters,
-        $action,
-        &$query,
-        &$cache_key,
-        $requestQuery
-    ){
+    protected static function buildParameterString($parameters, $action, &$query, &$cache_key, $requestQuery)
+    {
         // inbound parameters from request to be passed on
         foreach ($requestQuery as $name => $value) {
             $outbound = true;
@@ -222,11 +225,8 @@ class RemoteWeb extends BaseRestService implements CachedInterface
                     $value = ArrayUtils::get($header, 'value');
                     if (ArrayUtils::getBool($header, 'pass_from_client')) {
                         // Check for Basic Auth pulled into server variable already
-                        if ((0 === strcasecmp($name, 'Authorization')) &&
-                            (isset($_SERVER['PHP_AUTH_USER']) && isset($_SERVER['PHP_AUTH_PW']))
-                        ) {
-                            $value =
-                                'Basic ' . base64_encode($_SERVER['PHP_AUTH_USER'] . ':' . $_SERVER['PHP_AUTH_PW']);
+                        if ((0 === strcasecmp($name, 'Authorization')) && (isset($_SERVER['PHP_AUTH_USER']) && isset($_SERVER['PHP_AUTH_PW']))) {
+                            $value = 'Basic ' . base64_encode($_SERVER['PHP_AUTH_USER'] . ':' . $_SERVER['PHP_AUTH_PW']);
                         } else {
                             $phpHeaderName = strtoupper(str_replace(['-', ' '], ['_', '_'], $name));
                             // check for non-standard headers (prefix HTTP_) and standard headers like Content-Type
@@ -256,7 +256,10 @@ class RemoteWeb extends BaseRestService implements CachedInterface
         $this->checkPermission($this->getRequestedAction(), $this->name);
 
         //  set outbound parameters
-        $this->buildParameterString($this->parameters, $this->action, $this->query, $this->cacheQuery,
+        $this->buildParameterString($this->parameters,
+            $this->action,
+            $this->query,
+            $this->cacheQuery,
             $this->request->getParameters());
 
         //	set outbound headers
@@ -306,13 +309,22 @@ class RemoteWeb extends BaseRestService implements CachedInterface
 
         Log::debug('Outbound HTTP request: ' . $this->action . ': ' . $this->url);
 
+        /**
+         * 2016-01-21 GHA
+         * Add support for proxying remote web service request
+         */
+        $_curlOptions = $this->curlOptions ?: [];
+
+        if ($this->proxy) {
+            $_curlOptions[CURLOPT_PROXY] = $this->proxy;
+            $this->proxyCredentials && $_curlOptions[CURLOPT_PROXYUSERPWD] = $this->proxyCredentials;
+        }
+
         Curl::setDecodeToArray(true);
-        $result = Curl::request(
-            $this->action,
+        $result = Curl::request($this->action,
             $this->url,
             $data,
-            $this->curlOptions
-        );
+            $_curlOptions);
 
         if (false === $result) {
             $error = Curl::getError();
@@ -344,7 +356,8 @@ class RemoteWeb extends BaseRestService implements CachedInterface
         return $response;
     }
 
-    public static function getApiDocInfo(Service $service)
+    /** @inheritdoc */
+    public function getApiDocInfo(Service $service)
     {
         return ['paths' => [], 'definitions' => []];
     }

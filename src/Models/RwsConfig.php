@@ -1,5 +1,4 @@
-<?php
-namespace DreamFactory\Core\Rws\Models;
+<?php namespace DreamFactory\Core\Rws\Models;
 
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Models\BaseServiceConfigModel;
@@ -10,7 +9,7 @@ class RwsConfig extends BaseServiceConfigModel
 {
     protected $table = 'rws_config';
 
-    protected $fillable = ['service_id', 'base_url'];
+    protected $fillable = ['service_id', 'base_url', 'proxy', 'proxy_credentials', 'curl_options',];
 
     /**
      * @param int $id
@@ -127,6 +126,26 @@ class RwsConfig extends BaseServiceConfigModel
                 $schema['description'] =
                     'This is the root for the external call, additional resource path and parameters from client, ' .
                     'along with provisioned parameters and headers, will be added.';
+                break;
+
+            case 'proxy':
+                $schema['label'] = 'Proxy Information';
+                $schema['type'] = 'text';
+                $schema['description'] =
+                    'This contains the proxy information if this service is to be proxied. Format expected is "host:port". "localhost:8888" for example.';
+                break;
+
+            case 'proxy_credentials':
+                $schema['label'] = 'Proxy Credentials';
+                $schema['type'] = 'text';
+                $schema['description'] =
+                    'This contains optional proxy/gateway credentials needed for using a proxied service request. Format expected is "user:pass". "bobby:$t1nky" for example.';
+                break;
+
+            case 'curl_options':
+                $schema['label'] = 'CURL Options';
+                $schema['type'] = 'array';
+                $schema['description'] = 'This contains any additional CURL settings to use when making remote web service requests.';
                 break;
         }
     }
