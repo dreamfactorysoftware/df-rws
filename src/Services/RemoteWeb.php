@@ -341,9 +341,7 @@ class RemoteWeb extends BaseRestService implements CachedInterface
         }
 
         $contentType = Curl::getInfo('content_type');
-        $format = DataFormats::fromMimeType($contentType);
-
-        $response = ResponseFactory::create($result, $format, $status, $contentType);
+        $response = ResponseFactory::create($result, $contentType, $status);
 
         if ($this->cacheEnabled) {
             switch ($this->action) {
