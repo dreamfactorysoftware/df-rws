@@ -9,7 +9,9 @@ class RwsConfig extends BaseServiceConfigModel
 {
     protected $table = 'rws_config';
 
-    protected $fillable = ['service_id', 'base_url', 'proxy', 'proxy_credentials', 'curl_options',];
+    protected $fillable = ['service_id', 'base_url', 'options'];
+
+    protected $casts = ['options' => 'array', 'service_id' => 'integer'];
 
     /**
      * @param int $id
@@ -123,29 +125,23 @@ class RwsConfig extends BaseServiceConfigModel
             case 'base_url':
                 $schema['label'] = 'Base URL';
                 $schema['type'] = 'text';
-                $schema['description'] =
-                    'This is the root for the external call, additional resource path and parameters from client, ' .
+                $schema['description'] = 'This is the root for the external call, ' .
+                    'additional resource path and parameters from client, ' .
                     'along with provisioned parameters and headers, will be added.';
                 break;
 
-            case 'proxy':
-                $schema['label'] = 'Proxy Information';
-                $schema['type'] = 'text';
-                $schema['description'] =
-                    'This contains the proxy information if this service is to be proxied. Format expected is "host:port". "localhost:8888" for example.';
-                break;
-
-            case 'proxy_credentials':
-                $schema['label'] = 'Proxy Credentials';
-                $schema['type'] = 'text';
-                $schema['description'] =
-                    'This contains optional proxy/gateway credentials needed for using a proxied service request. Format expected is "user:pass". "bobby:$t1nky" for example.';
-                break;
-
-            case 'curl_options':
+            case 'options':
                 $schema['label'] = 'CURL Options';
-                $schema['type'] = 'array';
-                $schema['description'] = 'This contains any additional CURL settings to use when making remote web service requests.';
+                $schema['type'] = 'object';
+                $schema['object'] =
+                    [
+                        'key'   => ['label' => 'Name', 'type' => 'string'],
+                        'value' => ['label' => 'Value', 'type' => 'string']
+                    ];
+                $schema['description'] =
+                    'This contains any additional CURL settings to use when making remote web service requests, ' .
+                    'described as CUROPT_XXX at http://php.net/manual/en/function.curl-setopt.php. ' .
+                    'Notable options include PROXY and PROXYUSERPWD for getting calls through proxies.';
                 break;
         }
     }
