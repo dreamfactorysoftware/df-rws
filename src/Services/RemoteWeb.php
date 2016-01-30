@@ -1,19 +1,25 @@
-<?php
-namespace DreamFactory\Core\Rws\Services;
+<?php namespace DreamFactory\Core\Rws\Services;
 
-use DreamFactory\Core\Components\Cacheable;
-use DreamFactory\Core\Utility\Session;
-use Log;
 use Config;
+use DreamFactory\Core\Components\Cacheable;
 use DreamFactory\Core\Contracts\CachedInterface;
-use DreamFactory\Core\Enums\DataFormats;
-use DreamFactory\Core\Utility\ResponseFactory;
+use DreamFactory\Core\Contracts\HttpStatusCodeInterface;
+use DreamFactory\Core\Enums\HttpStatusCodes;
 use DreamFactory\Core\Enums\VerbsMask;
-use DreamFactory\Core\Services\BaseRestService;
+use DreamFactory\Core\Events\ResourcePostProcess;
+use DreamFactory\Core\Events\ResourcePreProcess;
+use DreamFactory\Core\Events\ServicePostProcess;
+use DreamFactory\Core\Events\ServicePreProcess;
+use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\RestException;
+use DreamFactory\Core\Models\Service;
+use DreamFactory\Core\Services\BaseRestService;
+use DreamFactory\Core\Utility\ResponseFactory;
+use DreamFactory\Core\Utility\Session;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Curl;
 use DreamFactory\Library\Utility\Enums\Verbs;
+use Log;
 
 class RemoteWeb extends BaseRestService implements CachedInterface
 {
@@ -54,7 +60,7 @@ class RemoteWeb extends BaseRestService implements CachedInterface
     /**
      * @var array
      */
-    protected $curlOptions = [];
+    protected $options = [];
 
     //*************************************************************************
     //* Methods
@@ -71,11 +77,10 @@ class RemoteWeb extends BaseRestService implements CachedInterface
     {
         parent::__construct($settings);
         $this->autoDispatch = false;
-        $this->query = '';
-        $this->cacheQuery = '';
 
         $config = ArrayUtils::get($settings, 'config', []);
         $this->baseUrl = ArrayUtils::get($config, 'base_url');
+        $this->options = ArrayUtils::get($config, 'options', []);
 
         // Validate url setup
         if (empty($this->baseUrl)) {
@@ -107,7 +112,11 @@ class RemoteWeb extends BaseRestService implements CachedInterface
     ){
         if (is_array($value)) {
             foreach ($value as $sub => $subValue) {
-                static::parseArrayParameter($query, $cache_key, $name . '[' . $sub . ']', $subValue, $add_to_query,
+                static::parseArrayParameter($query,
+                    $cache_key,
+                    $name . '[' . $sub . ']',
+                    $subValue,
+                    $add_to_query,
                     $add_to_key);
             }
         } else {
@@ -155,13 +164,8 @@ class RemoteWeb extends BaseRestService implements CachedInterface
      *
      * @return void
      */
-    protected static function buildParameterString(
-        $parameters,
-        $action,
-        &$query,
-        &$cache_key,
-        $requestQuery
-    ){
+    protected static function buildParameterString($parameters, $action, &$query, &$cache_key, $requestQuery)
+    {
         // inbound parameters from request to be passed on
         foreach ($requestQuery as $name => $value) {
             $outbound = true;
@@ -229,9 +233,11 @@ class RemoteWeb extends BaseRestService implements CachedInterface
                         } else {
                             $phpHeaderName = strtoupper(str_replace(['-', ' '], ['_', '_'], $name));
                             // check for non-standard headers (prefix HTTP_) and standard headers like Content-Type
-                            $value =
-                                (isset($_SERVER['HTTP_' . $phpHeaderName])) ? $_SERVER['HTTP_' . $phpHeaderName]
-                                    : (isset($_SERVER[$phpHeaderName])) ? $_SERVER[$phpHeaderName] : $value;
+                            if (isset($_SERVER['HTTP_' . $phpHeaderName])) {
+                                $value = $_SERVER['HTTP_' . $phpHeaderName];
+                            } elseif (isset($_SERVER[$phpHeaderName])) {
+                                $value = $_SERVER[$phpHeaderName];
+                            }
                         }
                     }
                     Session::replaceLookups($value, true);
@@ -242,30 +248,21 @@ class RemoteWeb extends BaseRestService implements CachedInterface
     }
 
     /**
-     * A chance to pre-process the data.
-     *
-     * @return mixed|void
-     */
-    protected function preProcess()
-    {
-        parent::preProcess();
-
-        $this->checkPermission($this->getRequestedAction(), $this->name);
-
-        //  set outbound parameters
-        $this->buildParameterString($this->parameters, $this->action, $this->query, $this->cacheQuery,
-            $this->request->getParameters());
-
-        //	set outbound headers
-        $this->addHeaders($this->headers, $this->action, $this->curlOptions);
-    }
-
-    /**
      * @throws \DreamFactory\Core\Exceptions\RestException
      * @return bool
      */
     protected function processRequest()
     {
+        $query = '';
+        $cacheQuery = '';
+
+        //  set outbound parameters
+        $this->buildParameterString($this->parameters, $this->action, $query, $cacheQuery,
+            $this->request->getParameters());
+
+        //	set outbound headers
+        $this->addHeaders($this->headers, $this->action, $this->options);
+
         $data = $this->request->getContent();
 
         $resource = (!empty($this->resourcePath) ? ltrim($this->resourcePath, '/') : null);
@@ -275,9 +272,9 @@ class RemoteWeb extends BaseRestService implements CachedInterface
             $this->url = $this->baseUrl;
         }
 
-        if (!empty($this->query)) {
+        if (!empty($query)) {
             $splicer = (false === strpos($this->baseUrl, '?')) ? '?' : '&';
-            $this->url .= $splicer . $this->query;
+            $this->url .= $splicer . $query;
         }
 
         $cacheKey = '';
@@ -289,8 +286,8 @@ class RemoteWeb extends BaseRestService implements CachedInterface
                     if ($resource) {
                         $cacheKey .= ':' . $resource;
                     }
-                    if (!empty($this->cacheQuery)) {
-                        $cacheKey .= ':' . $this->cacheQuery;
+                    if (!empty($cacheQuery)) {
+                        $cacheKey .= ':' . $cacheQuery;
                     }
                     $cacheKey = hash('sha256', $cacheKey);
 
@@ -303,17 +300,41 @@ class RemoteWeb extends BaseRestService implements CachedInterface
 
         Log::debug('Outbound HTTP request: ' . $this->action . ': ' . $this->url);
 
+        /**
+         * 2016-01-21 GHA
+         * Add support for proxying remote web service request using configurable CURL options
+         */
+        if (!empty($this->options)) {
+            $options = [];
+
+            foreach ($this->options as $key => $value) {
+                if (!is_numeric($key)) {
+                    if (defined($key)) {
+                        $options[constant($key)] = $value;
+                    } else {
+                        throw new InternalServerErrorException("Invalid configuration: $key is not a defined option.");
+                    }
+                }
+            }
+
+            $this->options = $options;
+            unset($options);
+        }
+
         Curl::setDecodeToArray(true);
-        $result = Curl::request(
-            $this->action,
-            $this->url,
-            $data,
-            $this->curlOptions
-        );
+        $result = Curl::request($this->action, $this->url, $data, $this->options);
 
         if (false === $result) {
             $error = Curl::getError();
-            throw new RestException(ArrayUtils::get($error, 'code', 500), ArrayUtils::get($error, 'message'));
+            $code = ArrayUtils::get($error, 'code', 500);
+            $status = $code;
+            //  In case the status code is not a valid HTTP Status code
+            if (!in_array($status, HttpStatusCodes::getDefinedConstants())) {
+                //  Do necessary translation here. Default is Internal server error.
+                $status = HttpStatusCodeInterface::HTTP_INTERNAL_SERVER_ERROR;
+            }
+
+            throw new RestException($status, ArrayUtils::get($error, 'message'), $code);
         }
 
         $status = Curl::getLastHttpCode();
@@ -326,9 +347,7 @@ class RemoteWeb extends BaseRestService implements CachedInterface
         }
 
         $contentType = Curl::getInfo('content_type');
-        $format = DataFormats::fromMimeType($contentType);
-
-        $response = ResponseFactory::create($result, $format, $status, $contentType);
+        $response = ResponseFactory::create($result, $contentType, $status);
 
         if ($this->cacheEnabled) {
             switch ($this->action) {
@@ -341,19 +360,41 @@ class RemoteWeb extends BaseRestService implements CachedInterface
         return $response;
     }
 
-    public function getApiDocModels()
+    /**
+     * Runs pre process tasks/scripts
+     */
+    protected function preProcess()
     {
-        return [];
+        if (!empty($this->resourcePath)) {
+            $path = str_replace('/','.',trim($this->resourcePath, '/'));
+            /** @noinspection PhpUnusedLocalVariableInspection */
+            $results = \Event::fire(
+                new ResourcePreProcess($this->name, $path, $this->request)
+            );
+        } else {
+            parent::preProcess();
+        }
     }
 
-    public function getApiDocInfo()
+    /**
+     * Runs post process tasks/scripts
+     */
+    protected function postProcess()
     {
-        return [
-            'resourcePath' => '/' . $this->name,
-            'produces'     => ['application/json', 'application/xml'],
-            'consumes'     => ['application/json', 'application/xml'],
-            'apis'         => [],
-            'models'       => [],
-        ];
+        if (!empty($this->resourcePath)) {
+            $path = str_replace('/','.',trim($this->resourcePath, '/'));
+            $event =
+                new ResourcePostProcess($this->name, $path, $this->request, $this->response);
+            /** @noinspection PhpUnusedLocalVariableInspection */
+            $results = \Event::fire($event);
+        } else {
+            parent::postProcess();
+        }
+    }
+
+    /** @inheritdoc */
+    public static function getApiDocInfo(Service $service)
+    {
+        return ['paths' => [], 'definitions' => []];
     }
 }
