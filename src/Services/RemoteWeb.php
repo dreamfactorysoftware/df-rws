@@ -6,6 +6,10 @@ use DreamFactory\Core\Contracts\CachedInterface;
 use DreamFactory\Core\Contracts\HttpStatusCodeInterface;
 use DreamFactory\Core\Enums\HttpStatusCodes;
 use DreamFactory\Core\Enums\VerbsMask;
+use DreamFactory\Core\Events\ResourcePostProcess;
+use DreamFactory\Core\Events\ResourcePreProcess;
+use DreamFactory\Core\Events\ServicePostProcess;
+use DreamFactory\Core\Events\ServicePreProcess;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\RestException;
 use DreamFactory\Core\Models\Service;
@@ -354,6 +358,38 @@ class RemoteWeb extends BaseRestService implements CachedInterface
         }
 
         return $response;
+    }
+
+    /**
+     * Runs pre process tasks/scripts
+     */
+    protected function preProcess()
+    {
+        if (!empty($this->resourcePath)) {
+            $path = str_replace('/','.',trim($this->resourcePath, '/'));
+            /** @noinspection PhpUnusedLocalVariableInspection */
+            $results = \Event::fire(
+                new ResourcePreProcess($this->name, $path, $this->request)
+            );
+        } else {
+            parent::preProcess();
+        }
+    }
+
+    /**
+     * Runs post process tasks/scripts
+     */
+    protected function postProcess()
+    {
+        if (!empty($this->resourcePath)) {
+            $path = str_replace('/','.',trim($this->resourcePath, '/'));
+            $event =
+                new ResourcePostProcess($this->name, $path, $this->request, $this->response);
+            /** @noinspection PhpUnusedLocalVariableInspection */
+            $results = \Event::fire($event);
+        } else {
+            parent::postProcess();
+        }
     }
 
     /** @inheritdoc */
