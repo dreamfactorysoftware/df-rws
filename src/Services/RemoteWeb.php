@@ -8,8 +8,6 @@ use DreamFactory\Core\Enums\HttpStatusCodes;
 use DreamFactory\Core\Enums\VerbsMask;
 use DreamFactory\Core\Events\ResourcePostProcess;
 use DreamFactory\Core\Events\ResourcePreProcess;
-use DreamFactory\Core\Events\ServicePostProcess;
-use DreamFactory\Core\Events\ServicePreProcess;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\RestException;
 use DreamFactory\Core\Models\Service;
@@ -78,9 +76,9 @@ class RemoteWeb extends BaseRestService implements CachedInterface
         parent::__construct($settings);
         $this->autoDispatch = false;
 
-        $config = ArrayUtils::get($settings, 'config', []);
+        $config = ArrayUtils::clean(ArrayUtils::get($settings, 'config', []));
         $this->baseUrl = ArrayUtils::get($config, 'base_url');
-        $this->options = ArrayUtils::get($config, 'options', []);
+        $this->options = ArrayUtils::clean(ArrayUtils::get($config, 'options'));
 
         // Validate url setup
         if (empty($this->baseUrl)) {
@@ -220,7 +218,7 @@ class RemoteWeb extends BaseRestService implements CachedInterface
         // DSP outbound headers, additional and pass through
         if (!empty($headers)) {
             foreach ($headers as $header) {
-                if (static::doesActionApply($header, $action)) {
+                if (is_array($header) && static::doesActionApply($header, $action)) {
                     $name = ArrayUtils::get($header, 'name');
                     $value = ArrayUtils::get($header, 'value');
                     if (ArrayUtils::getBool($header, 'pass_from_client')) {
