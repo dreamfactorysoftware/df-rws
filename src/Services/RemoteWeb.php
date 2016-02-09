@@ -312,6 +312,8 @@ class RemoteWeb extends BaseRestService implements CachedInterface
                     } else {
                         throw new InternalServerErrorException("Invalid configuration: $key is not a defined option.");
                     }
+                } else {
+                    $options[$key] = $value;
                 }
             }
 
