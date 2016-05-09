@@ -393,7 +393,7 @@ class RemoteWeb extends BaseRestService implements CachedInterface
     }
 
     /** @inheritdoc */
-    public static function getApiDocInfo(Service $service)
+    public function getApiDocInfo()
     {
         return ['paths' => [], 'definitions' => []];
     }
