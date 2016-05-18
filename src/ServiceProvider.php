@@ -16,7 +16,7 @@ class ServiceProvider extends \Illuminate\Support\ServiceProvider
             $df->addType(
                 new ServiceType([
                     'name'           => 'rws',
-                    'label'          => 'Remote Web Service',
+                    'label'          => 'HTTP Service',
                     'description'    => 'A service to handle Remote Web Services',
                     'group'          => ServiceTypeGroups::REMOTE,
                     'config_handler' => RwsConfig::class,
