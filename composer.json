@@ -1,47 +1,42 @@
 {
-  "name":              "dreamfactory/df-rws",
-  "description":       "Remote Web Service for the DreamFactory Platform 2.0.",
-  "minimum-stability": "dev",
-  "keywords":          [
+  "name":        "dreamfactory/df-rws",
+  "description": "Remote Web Service for the DreamFactory Platform 2.0.",
+  "keywords":    [
     "dreamfactory",
     "dsp",
     "rest",
     "web",
     "curl"
   ],
-  "homepage":          "https://www.dreamfactory.com/",
-  "license":           "Apache-2.0",
-  "authors":           [
+  "homepage":    "https://www.dreamfactory.com/",
+  "license":     "Apache-2.0",
+  "authors":     [
     {
       "name":  "Arif Islam",
       "email": "arifislam@dreamfactory.com"
-    },
-    {
-      "name":  "Jerry Ablan",
-      "email": "jerryablan@dreamfactory.com"
     },
     {
       "name":  "Lee Hicks",
       "email": "leehicks@dreamfactory.com"
     }
   ],
-  "support":           {
+  "support":     {
     "email":  "support@dreamfactory.com",
     "source": "https://github.com/dreamfactorysoftware/df-rws",
     "issues": "https://github.com/dreamfactorysoftware/df-rws/issues",
     "wiki":   "https://wiki.dreamfactory.com"
   },
-  "require":           {
-    "dreamfactory/df-core": "~0.2.0"
+  "require":     {
+    "dreamfactory/df-core": "~0.3.0"
   },
-  "autoload":          {
+  "autoload":    {
     "psr-4": {
       "DreamFactory\\Core\\Rws\\": "src/"
     }
   },
-  "extra":             {
+  "extra":       {
     "branch-alias": {
-      "dev-develop": "0.2.x-dev"
+      "dev-develop": "0.3.x-dev"
     }
   }
 }

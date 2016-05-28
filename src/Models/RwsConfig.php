@@ -123,8 +123,9 @@ class RwsConfig extends BaseServiceConfigModel
 
         switch ($schema['name']) {
             case 'base_url':
-                $schema['label'] = 'Base URL';
+                $schema['label'] = 'Base URL (required if not defined in Service Definition)';
                 $schema['type'] = 'text';
+                $schema['required'] = false;
                 $schema['description'] = 'This is the root for the external call, ' .
                     'additional resource path and parameters from client, ' .
                     'along with provisioned parameters and headers, will be added.';
