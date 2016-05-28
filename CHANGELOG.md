@@ -9,6 +9,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
+## [0.3.0] - 2016-05-27
+### Changed
+- Moved seeding functionality to service provider to adhere to df-core changes.
+
 ## [0.2.2] - 2016-02-09
 ### Fixed
 - Fix headers getting dropped
