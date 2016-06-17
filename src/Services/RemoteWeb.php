@@ -58,6 +58,10 @@ class RemoteWeb extends BaseRestService implements CachedInterface
      * @var array
      */
     protected $options = [];
+    /**
+     * @var array
+     */
+    protected $apiDoc = [];
 
     //*************************************************************************
     //* Methods
@@ -89,6 +93,8 @@ class RemoteWeb extends BaseRestService implements CachedInterface
         $this->cacheEnabled = Scalar::boolval(array_get($config, 'cache_enabled'));
         $this->cacheTTL = intval(array_get($config, 'cache_ttl', Config::get('df.default_cache_ttl')));
         $this->cachePrefix = 'service_' . $this->id . ':';
+
+        $this->apiDoc = (array)array_get($settings, 'doc');
     }
 
     /**
@@ -365,11 +371,13 @@ class RemoteWeb extends BaseRestService implements CachedInterface
     protected function preProcess()
     {
         if (!empty($this->resourcePath)) {
-            $path = str_replace('/','.',trim($this->resourcePath, '/'));
-            /** @noinspection PhpUnusedLocalVariableInspection */
-            $results = \Event::fire(
-                new ResourcePreProcess($this->name, $path, $this->request)
-            );
+            $events = array_keys((array)array_get($this->apiDoc, 'paths'));
+            if (null !== $match = static::matchEventPath($events, $this->resourcePath)) {
+                /** @noinspection PhpUnusedLocalVariableInspection */
+                $results =
+                    \Event::fire(new ResourcePreProcess($this->name, $match['path'], $this->request,
+                        $match['resource']));
+            }
         } else {
             parent::preProcess();
         }
@@ -381,19 +389,50 @@ class RemoteWeb extends BaseRestService implements CachedInterface
     protected function postProcess()
     {
         if (!empty($this->resourcePath)) {
-            $path = str_replace('/','.',trim($this->resourcePath, '/'));
-            $event =
-                new ResourcePostProcess($this->name, $path, $this->request, $this->response);
-            /** @noinspection PhpUnusedLocalVariableInspection */
-            $results = \Event::fire($event);
+            $events = array_keys((array)array_get($this->apiDoc, 'paths'));
+            if (null !== $match = static::matchEventPath($events, $this->resourcePath)) {
+                /** @noinspection PhpUnusedLocalVariableInspection */
+                $results =
+                    \Event::fire(new ResourcePostProcess($this->name, $match['path'], $this->request, $this->response,
+                        $match['resource']));
+            }
         } else {
             parent::postProcess();
         }
     }
 
+    protected static function matchEventPath($paths, $search)
+    {
+        $pieces = explode('/', $search);
+        foreach ($paths as $path) {
+            // drop service from path
+            $path = trim(strstr(trim($path, '/'), '/'), '/');
+            $pathPieces = explode('/', $path);
+            if (count($pieces) === count($pathPieces)) {
+                if (empty($diffs = array_diff($pathPieces, $pieces))) {
+                    return ['path' => $path, 'resource' => null];
+                }
+
+                $resources = [];
+                foreach ($diffs as $ndx => $diff) {
+                    if (0 !== strpos($diff, '{')) {
+                        // not a replacement parameters, see if another path works
+                        continue 2;
+                    }
+
+                    $resources[$diff] = $pieces[$ndx];
+                }
+
+                return ['path' => str_replace('/', '.', trim($path, '/')), 'resource' => $resources];
+            }
+        }
+
+        return null;
+    }
+
     /** @inheritdoc */
     public function getApiDocInfo()
     {
-        return ['paths' => [], 'definitions' => []];
+        return (!empty($this->apiDoc) ? $this->apiDoc : ['paths' => [], 'definitions' => []]);
     }
 }
