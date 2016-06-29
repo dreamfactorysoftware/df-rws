@@ -268,9 +268,9 @@ class RemoteWeb extends BaseRestService implements CachedInterface
 
         $data = $this->request->getContent();
 
-        $resource = (!empty($this->resourcePath) ? ltrim($this->resourcePath, '/') : null);
-        if ($resource) {
-            $this->url = rtrim($this->baseUrl, '/') . '/' . $resource;
+        $resource = array_map('rawurlencode', $this->resourceArray);
+        if (!empty($resource)) {
+            $this->url = rtrim($this->baseUrl, '/') . '/' . implode('/',$resource);
         } else {
             $this->url = $this->baseUrl;
         }
