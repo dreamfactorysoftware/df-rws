@@ -9,6 +9,13 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
+## [0.3.1] - 2016-07-08
+### Changed
+- General cleanup from declaration changes in df-core.
+- Clear API doc for remote web service, use user defined doc
+- DF-676 Adding event matching from swagger documentation paths to support event firing on exact and matching paths.
+- DF-798 Needed to urlencode resources forwarded on to remote
+
 ## [0.3.0] - 2016-05-27
 ### Changed
 - Moved seeding functionality to service provider to adhere to df-core changes.
@@ -39,7 +46,9 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## 0.1.0 - 2015-10-24
 First official release working with the new [df-core](https://github.com/dreamfactorysoftware/df-core) library.
 
-[Unreleased]: https://github.com/dreamfactorysoftware/df-rws/compare/0.2.2...HEAD
+[Unreleased]: https://github.com/dreamfactorysoftware/df-rws/compare/0.3.1...HEAD
+[0.3.1]: https://github.com/dreamfactorysoftware/df-rws/compare/0.3.0...0.3.1
+[0.3.0]: https://github.com/dreamfactorysoftware/df-rws/compare/0.2.2...0.3.0
 [0.2.2]: https://github.com/dreamfactorysoftware/df-rws/compare/0.2.1...0.2.2
 [0.2.1]: https://github.com/dreamfactorysoftware/df-rws/compare/0.2.0...0.2.1
 [0.2.0]: https://github.com/dreamfactorysoftware/df-rws/compare/0.1.1...0.2.0

@@ -10,13 +10,12 @@ use DreamFactory\Core\Events\ResourcePostProcess;
 use DreamFactory\Core\Events\ResourcePreProcess;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\RestException;
-use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Services\BaseRestService;
 use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Core\Utility\Session;
-use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Curl;
 use DreamFactory\Library\Utility\Enums\Verbs;
+use DreamFactory\Library\Utility\Scalar;
 use Log;
 
 class RemoteWeb extends BaseRestService implements CachedInterface
@@ -59,6 +58,10 @@ class RemoteWeb extends BaseRestService implements CachedInterface
      * @var array
      */
     protected $options = [];
+    /**
+     * @var array
+     */
+    protected $apiDoc = [];
 
     //*************************************************************************
     //* Methods
@@ -76,20 +79,22 @@ class RemoteWeb extends BaseRestService implements CachedInterface
         parent::__construct($settings);
         $this->autoDispatch = false;
 
-        $config = ArrayUtils::clean(ArrayUtils::get($settings, 'config', []));
-        $this->baseUrl = ArrayUtils::get($config, 'base_url');
-        $this->options = ArrayUtils::clean(ArrayUtils::get($config, 'options'));
+        $config = (array)array_get($settings, 'config', []);
+        $this->baseUrl = array_get($config, 'base_url');
+        $this->options = (array)array_get($config, 'options');
 
         // Validate url setup
         if (empty($this->baseUrl)) {
             throw new \InvalidArgumentException('Remote Web Service base url can not be empty.');
         }
-        $this->parameters = ArrayUtils::clean(ArrayUtils::get($config, 'parameters', []));
-        $this->headers = ArrayUtils::clean(ArrayUtils::get($config, 'headers', []));
+        $this->parameters = (array)array_get($config, 'parameters', []);
+        $this->headers = (array)array_get($config, 'headers', []);
 
-        $this->cacheEnabled = ArrayUtils::getBool($config, 'cache_enabled');
-        $this->cacheTTL = intval(ArrayUtils::get($config, 'cache_ttl', Config::get('df.default_cache_ttl')));
+        $this->cacheEnabled = Scalar::boolval(array_get($config, 'cache_enabled'));
+        $this->cacheTTL = intval(array_get($config, 'cache_ttl', Config::get('df.default_cache_ttl')));
         $this->cachePrefix = 'service_' . $this->id . ':';
+
+        $this->apiDoc = (array)array_get($settings, 'doc');
     }
 
     /**
@@ -147,7 +152,7 @@ class RemoteWeb extends BaseRestService implements CachedInterface
      */
     protected static function doesActionApply($config, $action)
     {
-        $excludeVerbMasks = intval(ArrayUtils::get($config, 'action'));
+        $excludeVerbMasks = intval(array_get($config, 'action'));
         $myActionMask = VerbsMask::toNumeric($action);
 
         return ($excludeVerbMasks & $myActionMask);
@@ -171,11 +176,11 @@ class RemoteWeb extends BaseRestService implements CachedInterface
             // unless excluded
             if (!empty($parameters)) {
                 foreach ($parameters as $param) {
-                    if (ArrayUtils::getBool($param, 'exclude')) {
-                        if (0 === strcasecmp($name, strval(ArrayUtils::get($param, 'name')))) {
+                    if (Scalar::boolval(array_get($param, 'exclude'))) {
+                        if (0 === strcasecmp($name, strval(array_get($param, 'name')))) {
                             if (static::doesActionApply($param, $action)) {
-                                $outbound = !ArrayUtils::getBool($param, 'outbound', true);
-                                $addToCacheKey = !ArrayUtils::getBool($param, 'cache_key', true);
+                                $outbound = !Scalar::boolval(array_get($param, 'outbound', true));
+                                $addToCacheKey = !Scalar::boolval(array_get($param, 'cache_key', true));
                             }
                         }
                     }
@@ -188,12 +193,12 @@ class RemoteWeb extends BaseRestService implements CachedInterface
         // DSP additional outbound parameters
         if (!empty($parameters)) {
             foreach ($parameters as $param) {
-                if (!ArrayUtils::getBool($param, 'exclude')) {
+                if (!Scalar::boolval(array_get($param, 'exclude'))) {
                     if (static::doesActionApply($param, $action)) {
-                        $name = ArrayUtils::get($param, 'name');
-                        $value = ArrayUtils::get($param, 'value');
-                        $outbound = ArrayUtils::getBool($param, 'outbound', true);
-                        $addToCacheKey = ArrayUtils::getBool($param, 'cache_key', true);
+                        $name = array_get($param, 'name');
+                        $value = array_get($param, 'value');
+                        $outbound = Scalar::boolval(array_get($param, 'outbound', true));
+                        $addToCacheKey = Scalar::boolval(array_get($param, 'cache_key', true));
 
                         static::parseArrayParameter($query, $cache_key, $name, $value, $outbound, $addToCacheKey);
                     }
@@ -211,7 +216,7 @@ class RemoteWeb extends BaseRestService implements CachedInterface
      */
     protected static function addHeaders($headers, $action, &$options)
     {
-        if (null === ArrayUtils::get($options, CURLOPT_HTTPHEADER)) {
+        if (null === array_get($options, CURLOPT_HTTPHEADER)) {
             $options[CURLOPT_HTTPHEADER] = [];
         }
 
@@ -219,9 +224,9 @@ class RemoteWeb extends BaseRestService implements CachedInterface
         if (!empty($headers)) {
             foreach ($headers as $header) {
                 if (is_array($header) && static::doesActionApply($header, $action)) {
-                    $name = ArrayUtils::get($header, 'name');
-                    $value = ArrayUtils::get($header, 'value');
-                    if (ArrayUtils::getBool($header, 'pass_from_client')) {
+                    $name = array_get($header, 'name');
+                    $value = array_get($header, 'value');
+                    if (Scalar::boolval(array_get($header, 'pass_from_client'))) {
                         // Check for Basic Auth pulled into server variable already
                         if ((0 === strcasecmp($name, 'Authorization')) &&
                             (isset($_SERVER['PHP_AUTH_USER']) && isset($_SERVER['PHP_AUTH_PW']))
@@ -263,9 +268,9 @@ class RemoteWeb extends BaseRestService implements CachedInterface
 
         $data = $this->request->getContent();
 
-        $resource = (!empty($this->resourcePath) ? ltrim($this->resourcePath, '/') : null);
-        if ($resource) {
-            $this->url = rtrim($this->baseUrl, '/') . '/' . $resource;
+        $resource = array_map('rawurlencode', $this->resourceArray);
+        if (!empty($resource)) {
+            $this->url = rtrim($this->baseUrl, '/') . '/' . implode('/',$resource);
         } else {
             $this->url = $this->baseUrl;
         }
@@ -326,7 +331,7 @@ class RemoteWeb extends BaseRestService implements CachedInterface
 
         if (false === $result) {
             $error = Curl::getError();
-            $code = ArrayUtils::get($error, 'code', 500);
+            $code = array_get($error, 'code', 500);
             $status = $code;
             //  In case the status code is not a valid HTTP Status code
             if (!in_array($status, HttpStatusCodes::getDefinedConstants())) {
@@ -334,7 +339,7 @@ class RemoteWeb extends BaseRestService implements CachedInterface
                 $status = HttpStatusCodeInterface::HTTP_INTERNAL_SERVER_ERROR;
             }
 
-            throw new RestException($status, ArrayUtils::get($error, 'message'), $code);
+            throw new RestException($status, array_get($error, 'message'), $code);
         }
 
         $status = Curl::getLastHttpCode();
@@ -366,11 +371,13 @@ class RemoteWeb extends BaseRestService implements CachedInterface
     protected function preProcess()
     {
         if (!empty($this->resourcePath)) {
-            $path = str_replace('/','.',trim($this->resourcePath, '/'));
-            /** @noinspection PhpUnusedLocalVariableInspection */
-            $results = \Event::fire(
-                new ResourcePreProcess($this->name, $path, $this->request)
-            );
+            $events = array_keys((array)array_get($this->apiDoc, 'paths'));
+            if (null !== $match = static::matchEventPath($events, $this->resourcePath)) {
+                /** @noinspection PhpUnusedLocalVariableInspection */
+                $results =
+                    \Event::fire(new ResourcePreProcess($this->name, $match['path'], $this->request,
+                        $match['resource']));
+            }
         } else {
             parent::preProcess();
         }
@@ -382,19 +389,50 @@ class RemoteWeb extends BaseRestService implements CachedInterface
     protected function postProcess()
     {
         if (!empty($this->resourcePath)) {
-            $path = str_replace('/','.',trim($this->resourcePath, '/'));
-            $event =
-                new ResourcePostProcess($this->name, $path, $this->request, $this->response);
-            /** @noinspection PhpUnusedLocalVariableInspection */
-            $results = \Event::fire($event);
+            $events = array_keys((array)array_get($this->apiDoc, 'paths'));
+            if (null !== $match = static::matchEventPath($events, $this->resourcePath)) {
+                /** @noinspection PhpUnusedLocalVariableInspection */
+                $results =
+                    \Event::fire(new ResourcePostProcess($this->name, $match['path'], $this->request, $this->response,
+                        $match['resource']));
+            }
         } else {
             parent::postProcess();
         }
     }
 
+    protected static function matchEventPath($paths, $search)
+    {
+        $pieces = explode('/', $search);
+        foreach ($paths as $path) {
+            // drop service from path
+            $path = trim(strstr(trim($path, '/'), '/'), '/');
+            $pathPieces = explode('/', $path);
+            if (count($pieces) === count($pathPieces)) {
+                if (empty($diffs = array_diff($pathPieces, $pieces))) {
+                    return ['path' => $path, 'resource' => null];
+                }
+
+                $resources = [];
+                foreach ($diffs as $ndx => $diff) {
+                    if (0 !== strpos($diff, '{')) {
+                        // not a replacement parameters, see if another path works
+                        continue 2;
+                    }
+
+                    $resources[$diff] = $pieces[$ndx];
+                }
+
+                return ['path' => str_replace('/', '.', trim($path, '/')), 'resource' => $resources];
+            }
+        }
+
+        return null;
+    }
+
     /** @inheritdoc */
     public function getApiDocInfo()
     {
-        return ['paths' => [], 'definitions' => []];
+        return (!empty($this->apiDoc) ? $this->apiDoc : ['paths' => [], 'definitions' => []]);
     }
 }
