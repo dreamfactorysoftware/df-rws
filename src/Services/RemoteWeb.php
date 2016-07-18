@@ -410,7 +410,7 @@ class RemoteWeb extends BaseRestService implements CachedInterface
             $pathPieces = explode('/', $path);
             if (count($pieces) === count($pathPieces)) {
                 if (empty($diffs = array_diff($pathPieces, $pieces))) {
-                    return ['path' => $path, 'resource' => null];
+                    return ['path' => str_replace('/', '.', trim($path, '/')), 'resource' => null];
                 }
 
                 $resources = [];
