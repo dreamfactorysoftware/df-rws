@@ -43,18 +43,6 @@ class RemoteWeb extends BaseRestService implements CachedInterface
      */
     protected $cacheEnabled = false;
     /**
-     * @var string
-     */
-    protected $cacheQuery;
-    /**
-     * @var string
-     */
-    protected $query;
-    /**
-     * @var string
-     */
-    protected $url;
-    /**
      * @var array
      */
     protected $options = [];
@@ -81,12 +69,13 @@ class RemoteWeb extends BaseRestService implements CachedInterface
 
         $config = (array)array_get($settings, 'config', []);
         $this->baseUrl = array_get($config, 'base_url');
-        $this->options = (array)array_get($config, 'options');
-
         // Validate url setup
         if (empty($this->baseUrl)) {
             throw new \InvalidArgumentException('Remote Web Service base url can not be empty.');
         }
+
+        $this->options = (array)array_get($config, 'options');
+        static::cleanOptions($this->options);
         $this->parameters = (array)array_get($config, 'parameters', []);
         $this->headers = (array)array_get($config, 'headers', []);
 
@@ -250,34 +239,60 @@ class RemoteWeb extends BaseRestService implements CachedInterface
         }
     }
 
+    protected static function cleanOptions(&$options)
+    {
+        /**
+         * 2016-01-21 GHA
+         * Add support for proxying remote web service request using configurable CURL options
+         */
+        if (!empty($options)) {
+            $clearKeys = [];
+            foreach ($options as $key => $value) {
+                if (!is_numeric($key)) {
+                    if (defined($key)) {
+                        $options[constant($key)] = $value;
+                        $clearKeys[] = $key;
+                    } else {
+                        throw new InternalServerErrorException("Invalid configuration: $key is not a defined option.");
+                    }
+                }
+            }
+            foreach ($clearKeys as $value) {
+                unset($options[$value]);
+            }
+        }
+    }
+
     /**
      * @throws \DreamFactory\Core\Exceptions\RestException
      * @return bool
      */
     protected function processRequest()
     {
+        $url = '';
         $query = '';
         $cacheQuery = '';
+        $options = $this->options;
+
+        //	set outbound headers
+        $this->addHeaders($this->headers, $this->action, $options);
 
         //  set outbound parameters
         $this->buildParameterString($this->parameters, $this->action, $query, $cacheQuery,
             $this->request->getParameters());
 
-        //	set outbound headers
-        $this->addHeaders($this->headers, $this->action, $this->options);
-
         $data = $this->request->getContent();
 
         $resource = array_map('rawurlencode', $this->resourceArray);
         if (!empty($resource)) {
-            $this->url = rtrim($this->baseUrl, '/') . '/' . implode('/',$resource);
+            $url = rtrim($this->baseUrl, '/') . '/' . implode('/',$resource);
         } else {
-            $this->url = $this->baseUrl;
+            $url = $this->baseUrl;
         }
 
         if (!empty($query)) {
             $splicer = (false === strpos($this->baseUrl, '?')) ? '?' : '&';
-            $this->url .= $splicer . $query;
+            $url .= $splicer . $query;
         }
 
         $cacheKey = '';
@@ -301,33 +316,10 @@ class RemoteWeb extends BaseRestService implements CachedInterface
             }
         }
 
-        Log::debug('Outbound HTTP request: ' . $this->action . ': ' . $this->url);
-
-        /**
-         * 2016-01-21 GHA
-         * Add support for proxying remote web service request using configurable CURL options
-         */
-        if (!empty($this->options)) {
-            $options = [];
-
-            foreach ($this->options as $key => $value) {
-                if (!is_numeric($key)) {
-                    if (defined($key)) {
-                        $options[constant($key)] = $value;
-                    } else {
-                        throw new InternalServerErrorException("Invalid configuration: $key is not a defined option.");
-                    }
-                } else {
-                    $options[$key] = $value;
-                }
-            }
-
-            $this->options = $options;
-            unset($options);
-        }
+        Log::debug('Outbound HTTP request: ' . $this->action . ': ' . $url);
 
         Curl::setDecodeToArray(true);
-        $result = Curl::request($this->action, $this->url, $data, $this->options);
+        $result = Curl::request($this->action, $url, $data, $options);
 
         if (false === $result) {
             $error = Curl::getError();
