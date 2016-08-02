@@ -248,6 +248,10 @@ class RemoteWeb extends BaseRestService implements CachedInterface
         if (!empty($options)) {
             $clearKeys = [];
             foreach ($options as $key => $value) {
+                if (is_string($value) && (0 === stripos($value, 'CURL')) && defined($value)) {
+                    $value = constant($value);
+                }
+                // all cURL options must be integers
                 if (!is_numeric($key)) {
                     if (defined($key)) {
                         $options[constant($key)] = $value;
@@ -256,9 +260,13 @@ class RemoteWeb extends BaseRestService implements CachedInterface
                         throw new InternalServerErrorException("Invalid configuration: $key is not a defined option.");
                     }
                 }
+                else {
+                    $options[intval($key)] = $value;
+                    $clearKeys[] = $key;
+                }
             }
-            foreach ($clearKeys as $value) {
-                unset($options[$value]);
+            foreach ($clearKeys as $key) {
+                unset($options[$key]);
             }
         }
     }
@@ -269,7 +277,6 @@ class RemoteWeb extends BaseRestService implements CachedInterface
      */
     protected function processRequest()
     {
-        $url = '';
         $query = '';
         $cacheQuery = '';
         $options = $this->options;
