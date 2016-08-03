@@ -309,7 +309,7 @@ class RemoteWeb extends BaseRestService implements CachedInterface
                     // build cache_key
                     $cacheKey = $this->action . ':' . $this->name;
                     if ($resource) {
-                        $cacheKey .= ':' . $resource;
+                        $cacheKey .= ':' . implode('.',$resource);
                     }
                     if (!empty($cacheQuery)) {
                         $cacheKey .= ':' . $cacheQuery;
