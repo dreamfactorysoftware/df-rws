@@ -6,8 +6,6 @@ use DreamFactory\Core\Contracts\CachedInterface;
 use DreamFactory\Core\Contracts\HttpStatusCodeInterface;
 use DreamFactory\Core\Enums\HttpStatusCodes;
 use DreamFactory\Core\Enums\VerbsMask;
-use DreamFactory\Core\Events\ResourcePostProcess;
-use DreamFactory\Core\Events\ResourcePreProcess;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\RestException;
 use DreamFactory\Core\Services\BaseRestService;
@@ -101,7 +99,7 @@ class RemoteWeb extends BaseRestService implements CachedInterface
         $value,
         $add_to_query = true,
         $add_to_key = true
-    ){
+    ) {
         if (is_array($value)) {
             foreach ($value as $sub => $subValue) {
                 static::parseArrayParameter($query,
@@ -259,8 +257,7 @@ class RemoteWeb extends BaseRestService implements CachedInterface
                     } else {
                         throw new InternalServerErrorException("Invalid configuration: $key is not a defined option.");
                     }
-                }
-                else {
+                } else {
                     $options[intval($key)] = $value;
                     $clearKeys[] = $key;
                 }
@@ -292,7 +289,7 @@ class RemoteWeb extends BaseRestService implements CachedInterface
 
         $resource = array_map('rawurlencode', $this->resourceArray);
         if (!empty($resource)) {
-            $url = rtrim($this->baseUrl, '/') . '/' . implode('/',$resource);
+            $url = rtrim($this->baseUrl, '/') . '/' . implode('/', $resource);
         } else {
             $url = $this->baseUrl;
         }
@@ -309,7 +306,7 @@ class RemoteWeb extends BaseRestService implements CachedInterface
                     // build cache_key
                     $cacheKey = $this->action . ':' . $this->name;
                     if ($resource) {
-                        $cacheKey .= ':' . implode('.',$resource);
+                        $cacheKey .= ':' . implode('.', $resource);
                     }
                     if (!empty($cacheQuery)) {
                         $cacheKey .= ':' . $cacheQuery;
@@ -364,44 +361,27 @@ class RemoteWeb extends BaseRestService implements CachedInterface
         return $response;
     }
 
-    /**
-     * Runs pre process tasks/scripts
-     */
-    protected function preProcess()
+    protected function getEventName()
     {
-        if (!empty($this->resourcePath)) {
-            $events = array_keys((array)array_get($this->apiDoc, 'paths'));
-            if (null !== $match = static::matchEventPath($events, $this->resourcePath)) {
-                /** @noinspection PhpUnusedLocalVariableInspection */
-                $results =
-                    \Event::fire(new ResourcePreProcess($this->name, $match['path'], $this->request,
-                        $match['resource']));
-            }
-        } else {
-            parent::preProcess();
+        if (!empty($this->resourcePath) && (null !== $match = $this->matchEventPath($this->resourcePath))) {
+            return parent::getEventName() . '.' . $match['path'];
         }
+
+        return parent::getEventName();
     }
 
-    /**
-     * Runs post process tasks/scripts
-     */
-    protected function postProcess()
+    protected function getEventResource()
     {
-        if (!empty($this->resourcePath)) {
-            $events = array_keys((array)array_get($this->apiDoc, 'paths'));
-            if (null !== $match = static::matchEventPath($events, $this->resourcePath)) {
-                /** @noinspection PhpUnusedLocalVariableInspection */
-                $results =
-                    \Event::fire(new ResourcePostProcess($this->name, $match['path'], $this->request, $this->response,
-                        $match['resource']));
-            }
-        } else {
-            parent::postProcess();
+        if (!empty($this->resourcePath) && (null !== $match = $this->matchEventPath($this->resourcePath))) {
+            return $match['resource'];
         }
+
+        return parent::getEventResource();
     }
 
-    protected static function matchEventPath($paths, $search)
+    protected function matchEventPath($search)
     {
+        $paths = array_keys((array)array_get($this->apiDoc, 'paths'));
         $pieces = explode('/', $search);
         foreach ($paths as $path) {
             // drop service from path
