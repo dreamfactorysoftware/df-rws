@@ -6,8 +6,6 @@ use DreamFactory\Core\Contracts\CachedInterface;
 use DreamFactory\Core\Contracts\HttpStatusCodeInterface;
 use DreamFactory\Core\Enums\HttpStatusCodes;
 use DreamFactory\Core\Enums\VerbsMask;
-use DreamFactory\Core\Events\ResourcePostProcess;
-use DreamFactory\Core\Events\ResourcePreProcess;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\RestException;
 use DreamFactory\Core\Services\BaseRestService;
@@ -43,18 +41,6 @@ class RemoteWeb extends BaseRestService implements CachedInterface
      */
     protected $cacheEnabled = false;
     /**
-     * @var string
-     */
-    protected $cacheQuery;
-    /**
-     * @var string
-     */
-    protected $query;
-    /**
-     * @var string
-     */
-    protected $url;
-    /**
      * @var array
      */
     protected $options = [];
@@ -81,12 +67,13 @@ class RemoteWeb extends BaseRestService implements CachedInterface
 
         $config = (array)array_get($settings, 'config', []);
         $this->baseUrl = array_get($config, 'base_url');
-        $this->options = (array)array_get($config, 'options');
-
         // Validate url setup
         if (empty($this->baseUrl)) {
             throw new \InvalidArgumentException('Remote Web Service base url can not be empty.');
         }
+
+        $this->options = (array)array_get($config, 'options');
+        static::cleanOptions($this->options);
         $this->parameters = (array)array_get($config, 'parameters', []);
         $this->headers = (array)array_get($config, 'headers', []);
 
@@ -112,7 +99,7 @@ class RemoteWeb extends BaseRestService implements CachedInterface
         $value,
         $add_to_query = true,
         $add_to_key = true
-    ){
+    ) {
         if (is_array($value)) {
             foreach ($value as $sub => $subValue) {
                 static::parseArrayParameter($query,
@@ -250,6 +237,37 @@ class RemoteWeb extends BaseRestService implements CachedInterface
         }
     }
 
+    protected static function cleanOptions(&$options)
+    {
+        /**
+         * 2016-01-21 GHA
+         * Add support for proxying remote web service request using configurable CURL options
+         */
+        if (!empty($options)) {
+            $clearKeys = [];
+            foreach ($options as $key => $value) {
+                if (is_string($value) && (0 === stripos($value, 'CURL')) && defined($value)) {
+                    $value = constant($value);
+                }
+                // all cURL options must be integers
+                if (!is_numeric($key)) {
+                    if (defined($key)) {
+                        $options[constant($key)] = $value;
+                        $clearKeys[] = $key;
+                    } else {
+                        throw new InternalServerErrorException("Invalid configuration: $key is not a defined option.");
+                    }
+                } else {
+                    $options[intval($key)] = $value;
+                    $clearKeys[] = $key;
+                }
+            }
+            foreach ($clearKeys as $key) {
+                unset($options[$key]);
+            }
+        }
+    }
+
     /**
      * @throws \DreamFactory\Core\Exceptions\RestException
      * @return bool
@@ -258,26 +276,27 @@ class RemoteWeb extends BaseRestService implements CachedInterface
     {
         $query = '';
         $cacheQuery = '';
+        $options = $this->options;
+
+        //	set outbound headers
+        $this->addHeaders($this->headers, $this->action, $options);
 
         //  set outbound parameters
         $this->buildParameterString($this->parameters, $this->action, $query, $cacheQuery,
             $this->request->getParameters());
 
-        //	set outbound headers
-        $this->addHeaders($this->headers, $this->action, $this->options);
-
         $data = $this->request->getContent();
 
         $resource = array_map('rawurlencode', $this->resourceArray);
         if (!empty($resource)) {
-            $this->url = rtrim($this->baseUrl, '/') . '/' . implode('/',$resource);
+            $url = rtrim($this->baseUrl, '/') . '/' . implode('/', $resource);
         } else {
-            $this->url = $this->baseUrl;
+            $url = $this->baseUrl;
         }
 
         if (!empty($query)) {
             $splicer = (false === strpos($this->baseUrl, '?')) ? '?' : '&';
-            $this->url .= $splicer . $query;
+            $url .= $splicer . $query;
         }
 
         $cacheKey = '';
@@ -287,7 +306,7 @@ class RemoteWeb extends BaseRestService implements CachedInterface
                     // build cache_key
                     $cacheKey = $this->action . ':' . $this->name;
                     if ($resource) {
-                        $cacheKey .= ':' . $resource;
+                        $cacheKey .= ':' . implode('.', $resource);
                     }
                     if (!empty($cacheQuery)) {
                         $cacheKey .= ':' . $cacheQuery;
@@ -301,33 +320,10 @@ class RemoteWeb extends BaseRestService implements CachedInterface
             }
         }
 
-        Log::debug('Outbound HTTP request: ' . $this->action . ': ' . $this->url);
-
-        /**
-         * 2016-01-21 GHA
-         * Add support for proxying remote web service request using configurable CURL options
-         */
-        if (!empty($this->options)) {
-            $options = [];
-
-            foreach ($this->options as $key => $value) {
-                if (!is_numeric($key)) {
-                    if (defined($key)) {
-                        $options[constant($key)] = $value;
-                    } else {
-                        throw new InternalServerErrorException("Invalid configuration: $key is not a defined option.");
-                    }
-                } else {
-                    $options[$key] = $value;
-                }
-            }
-
-            $this->options = $options;
-            unset($options);
-        }
+        Log::debug('Outbound HTTP request: ' . $this->action . ': ' . $url);
 
         Curl::setDecodeToArray(true);
-        $result = Curl::request($this->action, $this->url, $data, $this->options);
+        $result = Curl::request($this->action, $url, $data, $options);
 
         if (false === $result) {
             $error = Curl::getError();
@@ -365,44 +361,27 @@ class RemoteWeb extends BaseRestService implements CachedInterface
         return $response;
     }
 
-    /**
-     * Runs pre process tasks/scripts
-     */
-    protected function preProcess()
+    protected function getEventName()
     {
-        if (!empty($this->resourcePath)) {
-            $events = array_keys((array)array_get($this->apiDoc, 'paths'));
-            if (null !== $match = static::matchEventPath($events, $this->resourcePath)) {
-                /** @noinspection PhpUnusedLocalVariableInspection */
-                $results =
-                    \Event::fire(new ResourcePreProcess($this->name, $match['path'], $this->request,
-                        $match['resource']));
-            }
-        } else {
-            parent::preProcess();
+        if (!empty($this->resourcePath) && (null !== $match = $this->matchEventPath($this->resourcePath))) {
+            return parent::getEventName() . '.' . $match['path'];
         }
+
+        return parent::getEventName();
     }
 
-    /**
-     * Runs post process tasks/scripts
-     */
-    protected function postProcess()
+    protected function getEventResource()
     {
-        if (!empty($this->resourcePath)) {
-            $events = array_keys((array)array_get($this->apiDoc, 'paths'));
-            if (null !== $match = static::matchEventPath($events, $this->resourcePath)) {
-                /** @noinspection PhpUnusedLocalVariableInspection */
-                $results =
-                    \Event::fire(new ResourcePostProcess($this->name, $match['path'], $this->request, $this->response,
-                        $match['resource']));
-            }
-        } else {
-            parent::postProcess();
+        if (!empty($this->resourcePath) && (null !== $match = $this->matchEventPath($this->resourcePath))) {
+            return $match['resource'];
         }
+
+        return parent::getEventResource();
     }
 
-    protected static function matchEventPath($paths, $search)
+    protected function matchEventPath($search)
     {
+        $paths = array_keys((array)array_get($this->apiDoc, 'paths'));
         $pieces = explode('/', $search);
         foreach ($paths as $path) {
             // drop service from path
@@ -410,7 +389,7 @@ class RemoteWeb extends BaseRestService implements CachedInterface
             $pathPieces = explode('/', $path);
             if (count($pieces) === count($pathPieces)) {
                 if (empty($diffs = array_diff($pathPieces, $pieces))) {
-                    return ['path' => $path, 'resource' => null];
+                    return ['path' => str_replace('/', '.', trim($path, '/')), 'resource' => null];
                 }
 
                 $resources = [];
@@ -431,8 +410,8 @@ class RemoteWeb extends BaseRestService implements CachedInterface
     }
 
     /** @inheritdoc */
-    public function getApiDocInfo()
+    public static function getApiDocInfo($service)
     {
-        return (!empty($this->apiDoc) ? $this->apiDoc : ['paths' => [], 'definitions' => []]);
+        return ['paths' => [], 'definitions' => []];
     }
 }
