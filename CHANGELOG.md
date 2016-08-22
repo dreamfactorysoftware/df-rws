@@ -9,6 +9,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
+## [0.4.0] - 2016-08-21
+### Changed
+- General cleanup from declaration changes in df-core for service doc and providers
+
 ## [0.3.1] - 2016-07-08
 ### Changed
 - General cleanup from declaration changes in df-core.
