@@ -161,9 +161,9 @@ class RemoteWeb extends BaseRestService implements CachedInterface
 
         // inbound parameters from request to be passed on
         foreach ($requestQuery as $q) {
-            list($name, $value) = explode('=', $q);
-            $name = trim($name);
-            $value = trim($value);
+            $pairs = explode('=', $q);
+            $name = trim(array_get($pairs, 0));
+            $value = trim(array_get($pairs, 1));
             $outbound = true;
             $addToCacheKey = true;
             // unless excluded
