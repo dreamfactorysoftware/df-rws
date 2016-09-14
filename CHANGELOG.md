@@ -9,6 +9,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
+## [0.4.2] - 2016-09-06
+### Fixed
+- Fixed a bug where adding a query string without equal sign (=) from client would break the remote call.
+
 ## [0.4.1] - 2016-08-23
 ### Fixed
 - DF-854 Allowing pass-thru of repeated query parameters in remote web service.
@@ -60,7 +64,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## 0.1.0 - 2015-10-24
 First official release working with the new [df-core](https://github.com/dreamfactorysoftware/df-core) library.
 
-[Unreleased]: https://github.com/dreamfactorysoftware/df-rws/compare/0.4.1...HEAD
+[Unreleased]: https://github.com/dreamfactorysoftware/df-rws/compare/0.4.2...HEAD
+[0.4.2]: https://github.com/dreamfactorysoftware/df-rws/compare/0.4.1...0.4.2
 [0.4.1]: https://github.com/dreamfactorysoftware/df-rws/compare/0.4.0...0.4.1
 [0.4.0]: https://github.com/dreamfactorysoftware/df-rws/compare/0.3.1...0.4.0
 [0.3.1]: https://github.com/dreamfactorysoftware/df-rws/compare/0.3.0...0.3.1
