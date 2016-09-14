@@ -43,11 +43,9 @@ class ParameterConfig extends BaseServiceConfigModel
     public $incrementing = true;
 
     /**
-     * @param int $id
-     *
-     * @return array
+     * {@inheritdoc}
      */
-    public static function getConfig($id)
+    public static function getConfig($id, $protect = true)
     {
         $params = static::whereServiceId($id);
 
