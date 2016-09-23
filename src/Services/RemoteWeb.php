@@ -4,11 +4,13 @@ use Config;
 use DreamFactory\Core\Components\Cacheable;
 use DreamFactory\Core\Contracts\CachedInterface;
 use DreamFactory\Core\Contracts\HttpStatusCodeInterface;
+use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Enums\HttpStatusCodes;
 use DreamFactory\Core\Enums\VerbsMask;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\RestException;
 use DreamFactory\Core\Services\BaseRestService;
+use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Core\Utility\Session;
 use DreamFactory\Library\Utility\Curl;
@@ -48,6 +50,10 @@ class RemoteWeb extends BaseRestService implements CachedInterface
      * @var array
      */
     protected $apiDoc = [];
+    /**
+     * @type bool
+     */
+    protected $implementsAccessList = false;
 
     //*************************************************************************
     //* Methods
@@ -82,6 +88,7 @@ class RemoteWeb extends BaseRestService implements CachedInterface
         $this->cachePrefix = 'service_' . $this->id . ':';
 
         $this->apiDoc = (array)array_get($settings, 'doc');
+        $this->implementsAccessList = boolval(array_get($config, 'implements_access_list', false));
     }
 
     /**
@@ -99,7 +106,7 @@ class RemoteWeb extends BaseRestService implements CachedInterface
         $value,
         $add_to_query = true,
         $add_to_key = true
-    ){
+    ) {
         if (is_array($value)) {
             foreach ($value as $sub => $subValue) {
                 static::parseArrayParameter($query,
@@ -274,12 +281,43 @@ class RemoteWeb extends BaseRestService implements CachedInterface
         }
     }
 
+    public function getAccessList()
+    {
+        $list = parent::getAccessList();
+
+        $paths = array_keys((array)array_get($this->apiDoc, 'paths'));
+        foreach ($paths as $path) {
+            // drop service from path
+            if (!empty($path = ltrim(strstr(ltrim($path, '/'), '/'), '/'))) {
+                $list[] = $path;
+                $path = explode("/", $path);
+                end($path);
+                while ($level = prev($path)) {
+                    $list[] = $level . '/*';
+                }
+            }
+        }
+
+        natsort($list);
+
+        return array_values(array_unique($list));
+    }
+
     /**
      * @throws \DreamFactory\Core\Exceptions\RestException
      * @return bool
      */
     protected function processRequest()
     {
+        if (!$this->implementsAccessList &&
+            (Verbs::GET === $this->action) &&
+            ($this->request->getParameterAsBool(ApiOptions::AS_ACCESS_LIST))
+        ) {
+            $result = ResourcesWrapper::wrapResources($this->getAccessList());
+
+            return ResponseFactory::create($result);
+        }
+
         $query = '';
         $cacheQuery = '';
         $options = $this->options;
