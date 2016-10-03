@@ -14,11 +14,9 @@ class RwsConfig extends BaseServiceConfigModel
     protected $casts = ['options' => 'array', 'service_id' => 'integer'];
 
     /**
-     * @param int $id
-     *
-     * @return array
+     * {@inheritdoc}
      */
-    public static function getConfig($id)
+    public static function getConfig($id, $protect = true)
     {
         $config = parent::getConfig($id);
 
