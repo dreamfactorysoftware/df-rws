@@ -9,6 +9,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
+## [0.6.0] - 2016-11-17
+### Changed
+- Use null for empty service doc
+
 ## [0.5.0] - 2016-10-03
 ### Changed
 - DF-826 Updating to latest df-core models.
@@ -72,7 +76,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## 0.1.0 - 2015-10-24
 First official release working with the new [df-core](https://github.com/dreamfactorysoftware/df-core) library.
 
-[Unreleased]: https://github.com/dreamfactorysoftware/df-rws/compare/0.5.0...HEAD
+[Unreleased]: https://github.com/dreamfactorysoftware/df-rws/compare/0.6.0...HEAD
+[0.6.0]: https://github.com/dreamfactorysoftware/df-rws/compare/0.5.0...0.6.0
 [0.5.0]: https://github.com/dreamfactorysoftware/df-rws/compare/0.4.3...0.5.0
 [0.4.3]: https://github.com/dreamfactorysoftware/df-rws/compare/0.4.2...0.4.3
 [0.4.2]: https://github.com/dreamfactorysoftware/df-rws/compare/0.4.1...0.4.2
