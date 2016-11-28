@@ -8,6 +8,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Changed
 
 ### Fixed
+- Fixing undefined index: QUERY_STRING error when using built in php server.
 
 ## [0.6.0] - 2016-11-17
 ### Changed
