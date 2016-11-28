@@ -106,7 +106,7 @@ class RemoteWeb extends BaseRestService implements CachedInterface
         $value,
         $add_to_query = true,
         $add_to_key = true
-    ) {
+    ){
         if (is_array($value)) {
             foreach ($value as $sub => $subValue) {
                 static::parseArrayParameter($query,
@@ -164,7 +164,7 @@ class RemoteWeb extends BaseRestService implements CachedInterface
     {
         // Using raw query string here to allow for multiple parameters with the same key name.
         // The laravel Request object or PHP global array $_GET doesn't allow that.
-        $requestQuery = explode('&', $_SERVER['QUERY_STRING']);
+        $requestQuery = explode('&', array_get($_SERVER, 'QUERY_STRING'));
 
         // inbound parameters from request to be passed on
         foreach ($requestQuery as $q) {
