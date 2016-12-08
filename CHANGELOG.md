@@ -9,6 +9,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 - Fixing undefined index: QUERY_STRING error when using built in php server.
+- Fixing no param passing issue (empty QUERY_STRING) when calling RWS from a scripted service.
 
 ## [0.6.0] - 2016-11-17
 ### Changed
