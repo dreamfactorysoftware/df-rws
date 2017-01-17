@@ -4,12 +4,13 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 ### Added
-
 ### Changed
-
 ### Fixed
-- Fixing undefined index: QUERY_STRING error when using built in php server.
-- Fixing no param passing issue (empty QUERY_STRING) when calling RWS from a scripted service.
+
+## [0.7.0] - 2017-01-16
+### Fixed
+- Undefined index: QUERY_STRING error when using built in php server
+- No param passing issue (empty QUERY_STRING) when calling RWS from a scripted service
 
 ## [0.6.0] - 2016-11-17
 ### Changed
@@ -78,7 +79,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## 0.1.0 - 2015-10-24
 First official release working with the new [df-core](https://github.com/dreamfactorysoftware/df-core) library.
 
-[Unreleased]: https://github.com/dreamfactorysoftware/df-rws/compare/0.6.0...HEAD
+[Unreleased]: https://github.com/dreamfactorysoftware/df-rws/compare/0.7.0...HEAD
+[0.7.0]: https://github.com/dreamfactorysoftware/df-rws/compare/0.6.0...0.7.0
 [0.6.0]: https://github.com/dreamfactorysoftware/df-rws/compare/0.5.0...0.6.0
 [0.5.0]: https://github.com/dreamfactorysoftware/df-rws/compare/0.4.3...0.5.0
 [0.4.3]: https://github.com/dreamfactorysoftware/df-rws/compare/0.4.2...0.4.3
