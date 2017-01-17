@@ -106,7 +106,7 @@ class RemoteWeb extends BaseRestService implements CachedInterface
         $value,
         $add_to_query = true,
         $add_to_key = true
-    ) {
+    ){
         if (is_array($value)) {
             foreach ($value as $sub => $subValue) {
                 static::parseArrayParameter($query,
@@ -160,11 +160,20 @@ class RemoteWeb extends BaseRestService implements CachedInterface
      *
      * @return void
      */
-    protected static function buildParameterString($parameters, $action, &$query, &$cache_key)
+    protected static function buildParameterString($parameters, $action, &$query, &$cache_key, $requestParams = [])
     {
         // Using raw query string here to allow for multiple parameters with the same key name.
         // The laravel Request object or PHP global array $_GET doesn't allow that.
-        $requestQuery = explode('&', $_SERVER['QUERY_STRING']);
+        $requestQuery = explode('&', array_get($_SERVER, 'QUERY_STRING'));
+
+        // If request is coming from a scripted service then $_SERVER['QUERY_STRING'] will be blank.
+        // Therefore need to check the Request object for parameters.
+        foreach ($requestParams as $pk => $pv) {
+            $param = $pk . '=' . $pv;
+            if (!in_array($param, $requestQuery)) {
+                $requestQuery[] = $param;
+            }
+        }
 
         // inbound parameters from request to be passed on
         foreach ($requestQuery as $q) {
@@ -326,7 +335,8 @@ class RemoteWeb extends BaseRestService implements CachedInterface
         $this->addHeaders($this->headers, $this->action, $options);
 
         //  set outbound parameters
-        $this->buildParameterString($this->parameters, $this->action, $query, $cacheQuery);
+        $this->buildParameterString($this->parameters, $this->action, $query, $cacheQuery,
+            $this->request->getParameters());
 
         $data = $this->request->getContent();
 
