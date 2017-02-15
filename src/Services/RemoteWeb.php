@@ -377,6 +377,7 @@ class RemoteWeb extends BaseRestService implements CachedInterface
 
         Curl::setDecodeToArray(true);
         $result = Curl::request($this->action, $url, $data, $options);
+        $resultHeaders = Curl::getLastResponseHeaders();
 
         if (false === $result) {
             $error = Curl::getError();
@@ -402,6 +403,7 @@ class RemoteWeb extends BaseRestService implements CachedInterface
 
         $contentType = Curl::getInfo('content_type');
         $response = ResponseFactory::create($result, $contentType, $status);
+        $response->setHeaders($resultHeaders);
 
         if ($this->cacheEnabled) {
             switch ($this->action) {
