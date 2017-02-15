@@ -7,6 +7,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Changed
 ### Fixed
 
+## [0.7.1] - 2017-02-15
+### Fixed
+- Set cURL response headers in response to client
+
 ## [0.7.0] - 2017-01-16
 ### Fixed
 - Undefined index: QUERY_STRING error when using built in php server
@@ -79,7 +83,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## 0.1.0 - 2015-10-24
 First official release working with the new [df-core](https://github.com/dreamfactorysoftware/df-core) library.
 
-[Unreleased]: https://github.com/dreamfactorysoftware/df-rws/compare/0.7.0...HEAD
+[Unreleased]: https://github.com/dreamfactorysoftware/df-rws/compare/0.7.1...HEAD
+[0.7.1]: https://github.com/dreamfactorysoftware/df-rws/compare/0.7.0...0.7.1
 [0.7.0]: https://github.com/dreamfactorysoftware/df-rws/compare/0.6.0...0.7.0
 [0.6.0]: https://github.com/dreamfactorysoftware/df-rws/compare/0.5.0...0.6.0
 [0.5.0]: https://github.com/dreamfactorysoftware/df-rws/compare/0.4.3...0.5.0
