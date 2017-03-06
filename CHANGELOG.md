@@ -7,6 +7,9 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Changed
 ### Fixed
 
+## [0.8.0] - 2017-03-03
+- Major restructuring to upgrade to Laravel 5.4 and be more dynamically available
+
 ## [0.7.1] - 2017-02-15
 ### Fixed
 - Set cURL response headers in response to client
@@ -83,7 +86,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## 0.1.0 - 2015-10-24
 First official release working with the new [df-core](https://github.com/dreamfactorysoftware/df-core) library.
 
-[Unreleased]: https://github.com/dreamfactorysoftware/df-rws/compare/0.7.1...HEAD
+[Unreleased]: https://github.com/dreamfactorysoftware/df-rws/compare/0.8.0...HEAD
+[0.8.0]: https://github.com/dreamfactorysoftware/df-rws/compare/0.7.1...0.8.0
 [0.7.1]: https://github.com/dreamfactorysoftware/df-rws/compare/0.7.0...0.7.1
 [0.7.0]: https://github.com/dreamfactorysoftware/df-rws/compare/0.6.0...0.7.0
 [0.6.0]: https://github.com/dreamfactorysoftware/df-rws/compare/0.5.0...0.6.0
