@@ -5,6 +5,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 ### Added
 ### Changed
+- DF-756 Detected and replaced external links in rws response with DF api links
+
 ### Fixed
 
 ## [0.8.0] - 2017-03-03

@@ -9,6 +9,7 @@ use DreamFactory\Core\Enums\HttpStatusCodes;
 use DreamFactory\Core\Enums\VerbsMask;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\RestException;
+use DreamFactory\Core\Http\Controllers\StatusController;
 use DreamFactory\Core\Services\BaseRestService;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\ResponseFactory;
@@ -16,6 +17,7 @@ use DreamFactory\Core\Utility\Session;
 use DreamFactory\Library\Utility\Curl;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Library\Utility\Scalar;
+use Illuminate\Contracts\Support\Arrayable;
 use Log;
 
 class RemoteWeb extends BaseRestService implements CachedInterface
@@ -402,6 +404,7 @@ class RemoteWeb extends BaseRestService implements CachedInterface
         }
 
         $contentType = Curl::getInfo('content_type');
+        $result = $this->fixLinks($result);
         $response = ResponseFactory::create($result, $contentType, $status);
         $response->setHeaders($resultHeaders);
 
@@ -414,6 +417,34 @@ class RemoteWeb extends BaseRestService implements CachedInterface
         }
 
         return $response;
+    }
+
+    /**
+     * Replaces any hyper links referencing this service's base url
+     * with the link to this service itself to ensure DF rws works
+     * as the gateway to all remote service calls.
+     *
+     * @param $result
+     *
+     * @return mixed
+     */
+    protected function fixLinks($result)
+    {
+        $isArray = false;
+        $string = '';
+        if (is_array($result)) {
+            $string = json_encode($result, JSON_UNESCAPED_SLASHES);
+            $isArray = true;
+        } elseif (is_string($result)) {
+            $string = $result;
+        }
+
+        $myUri = StatusController::getURI($_SERVER);
+        $myUrl = trim($myUri, '/') . '/api/v2/' . $this->name;
+        $baseUrl = trim($this->baseUrl);
+        $string = str_replace($baseUrl, $myUrl, $string);
+
+        return ($isArray) ? json_decode($string, true) : $string;
     }
 
     protected function getEventName()
