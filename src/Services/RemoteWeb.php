@@ -4,12 +4,16 @@ use Config;
 use DreamFactory\Core\Components\Cacheable;
 use DreamFactory\Core\Contracts\CachedInterface;
 use DreamFactory\Core\Contracts\HttpStatusCodeInterface;
+use DreamFactory\Core\Contracts\ServiceResponseInterface;
 use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Enums\HttpStatusCodes;
+use DreamFactory\Core\Enums\ServiceTypeGroups;
 use DreamFactory\Core\Enums\VerbsMask;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\RestException;
 use DreamFactory\Core\Http\Controllers\StatusController;
+use DreamFactory\Core\Models\Service;
+use DreamFactory\Core\Resources\System\ServiceType;
 use DreamFactory\Core\Services\BaseRestService;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\ResponseFactory;
@@ -32,6 +36,12 @@ class RemoteWeb extends BaseRestService implements CachedInterface
      * @var string
      */
     protected $baseUrl;
+
+    /**
+     * @var boolean
+     */
+    protected $replaceLinks = false;
+
     /**
      * @var array
      */
@@ -75,6 +85,7 @@ class RemoteWeb extends BaseRestService implements CachedInterface
 
         $config = (array)array_get($settings, 'config', []);
         $this->baseUrl = array_get($config, 'base_url');
+        $this->replaceLinks = array_get($config, 'replace_link', false);
         // Validate url setup
         if (empty($this->baseUrl)) {
             throw new \InvalidArgumentException('Remote Web Service base url can not be empty.');
@@ -316,7 +327,7 @@ class RemoteWeb extends BaseRestService implements CachedInterface
 
     /**
      * @throws \DreamFactory\Core\Exceptions\RestException
-     * @return bool
+     * @return ServiceResponseInterface
      */
     protected function processRequest()
     {
@@ -420,8 +431,8 @@ class RemoteWeb extends BaseRestService implements CachedInterface
     }
 
     /**
-     * Replaces any hyper links referencing this service's base url
-     * with the link to this service itself to ensure DF rws works
+     * Replaces any hyper links referencing any DF remote web service's base url
+     * with the link to the corresponding DF service itself to ensure DF rws works
      * as the gateway to all remote service calls.
      *
      * @param $result
@@ -430,6 +441,10 @@ class RemoteWeb extends BaseRestService implements CachedInterface
      */
     protected function fixLinks($result)
     {
+        if (false === $this->replaceLinks) {
+            return $result;
+        }
+
         $isArray = false;
         $string = '';
         if (is_array($result)) {
@@ -440,9 +455,17 @@ class RemoteWeb extends BaseRestService implements CachedInterface
         }
 
         $myUri = StatusController::getURI($_SERVER);
-        $myUrl = trim($myUri, '/') . '/api/v2/' . $this->name;
-        $baseUrl = trim($this->baseUrl);
-        $string = str_replace($baseUrl, $myUrl, $string);
+
+        $allRws = Service::whereType('rws')->whereIsActive(1)->get()->all();
+        if (!empty($allRws)) {
+            /** @var Service $rws */
+            foreach ($allRws as $rws) {
+                $config = $rws->getConfigAttribute();
+                $baseUrl = trim(array_get($config, 'base_url'), '/');
+                $dfUrl = trim($myUri, '/') . '/api/v2/' . $rws->name;
+                $string = str_replace($baseUrl, $dfUrl, $string);
+            }
+        }
 
         return ($isArray) ? json_decode($string, true) : $string;
     }
