@@ -3,7 +3,6 @@
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Models\BaseServiceConfigModel;
 use DreamFactory\Core\Models\ServiceCacheConfig;
-use Guzzle\Http\Message\Header;
 
 class RwsConfig extends BaseServiceConfigModel
 {
@@ -57,6 +56,14 @@ class RwsConfig extends BaseServiceConfigModel
                     return false;
                 }
             }
+        }
+        $cache = [];
+        $cache['cache_enabled'] = array_get($config, 'cache_enabled', false);
+        unset($config['cache_enabled']);
+        $cache['cache_ttl'] = array_get($config, 'cache_ttl');
+        unset($config['cache_ttl']);
+        if (!ServiceCacheConfig::validateConfig($cache, $create)) {
+            return false;
         }
 
         return true;

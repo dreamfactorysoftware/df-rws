@@ -72,10 +72,23 @@ class RemoteWeb extends BaseRestService implements CachedInterface
         $this->autoDispatch = false;
 
         $config = (array)array_get($settings, 'config', []);
+        $this->apiDoc = (array)array_get($settings, 'doc');
         $this->baseUrl = array_get($config, 'base_url');
         // Validate url setup
         if (empty($this->baseUrl)) {
-            throw new \InvalidArgumentException('Remote Web Service base url can not be empty.');
+            // fancy trick to grab the base url from swagger
+            if (!empty($this->apiDoc) && !empty($host = array_get($this->apiDoc, 'host'))) {
+                if (!empty($protocol = array_get($this->apiDoc, 'schemes'))) {
+                    $protocol = (is_array($protocol) ? current($protocol) : $protocol);
+                } else {
+                    $protocol = 'http';
+                }
+                $basePath = array_get($this->apiDoc, 'basePath', '');
+                $this->baseUrl = $protocol . '://' . $host . $basePath;
+            }
+            if (empty($this->baseUrl)) {
+                throw new \InvalidArgumentException('Remote Web Service base url can not be empty.');
+            }
         }
 
         $this->options = (array)array_get($config, 'options');
@@ -87,7 +100,6 @@ class RemoteWeb extends BaseRestService implements CachedInterface
         $this->cacheTTL = intval(array_get($config, 'cache_ttl', Config::get('df.default_cache_ttl')));
         $this->cachePrefix = 'service_' . $this->id . ':';
 
-        $this->apiDoc = (array)array_get($settings, 'doc');
         $this->implementsAccessList = boolval(array_get($config, 'implements_access_list', false));
     }
 
@@ -106,7 +118,7 @@ class RemoteWeb extends BaseRestService implements CachedInterface
         $value,
         $add_to_query = true,
         $add_to_key = true
-    ){
+    ) {
         if (is_array($value)) {
             foreach ($value as $sub => $subValue) {
                 static::parseArrayParameter($query,
@@ -157,6 +169,7 @@ class RemoteWeb extends BaseRestService implements CachedInterface
      * @param string $action
      * @param string $query
      * @param string $cache_key
+     * @param array  $requestParams
      *
      * @return void
      */
