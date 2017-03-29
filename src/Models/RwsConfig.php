@@ -8,9 +8,9 @@ class RwsConfig extends BaseServiceConfigModel
 {
     protected $table = 'rws_config';
 
-    protected $fillable = ['service_id', 'base_url', 'options'];
+    protected $fillable = ['service_id', 'base_url', 'options', 'replace_link'];
 
-    protected $casts = ['options' => 'array', 'service_id' => 'integer'];
+    protected $casts = ['options' => 'array', 'service_id' => 'integer', 'replace_link' => 'boolean'];
 
     /**
      * {@inheritdoc}
@@ -148,6 +148,11 @@ class RwsConfig extends BaseServiceConfigModel
                     'This contains any additional CURL settings to use when making remote web service requests, ' .
                     'described as CUROPT_XXX at http://php.net/manual/en/function.curl-setopt.php. ' .
                     'Notable options include PROXY and PROXYUSERPWD for getting calls through proxies.';
+                break;
+            case 'replace_link':
+                $schema['label'] = 'Replace Hyperlinks';
+                $schema['description'] =
+                    'Replace external hyperlinks in response with DF equivalent hyperlinks when possible.';
                 break;
         }
     }
