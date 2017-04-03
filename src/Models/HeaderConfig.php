@@ -39,6 +39,11 @@ class HeaderConfig extends BaseServiceConfigModel
     public $incrementing = true;
 
     /**
+     * @var bool
+     */
+    public static $alwaysNewOnSet = true;
+
+    /**
      * @param array $schema
      */
     protected static function prepareConfigSchemaField(array &$schema)
