@@ -3,30 +3,40 @@
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Models\BaseServiceConfigModel;
 use DreamFactory\Core\Models\ServiceCacheConfig;
-use Guzzle\Http\Message\Header;
 
 class RwsConfig extends BaseServiceConfigModel
 {
     protected $table = 'rws_config';
 
-    protected $fillable = ['service_id', 'base_url', 'options'];
+    protected $fillable = ['service_id', 'base_url', 'options', 'replace_link'];
 
-    protected $casts = ['options' => 'array', 'service_id' => 'integer'];
+    protected $casts = ['options' => 'array', 'service_id' => 'integer', 'replace_link' => 'boolean'];
 
     /**
      * {@inheritdoc}
      */
-    public static function getConfig($id, $protect = true)
+    public static function getConfig($id, $local_config = null, $protect = true)
     {
-        $config = parent::getConfig($id);
+        $config = parent::getConfig($id, $local_config, $protect);
 
         $params = ParameterConfig::whereServiceId($id)->get();
-        $config['parameters'] = (empty($params)) ? [] : $params->toArray();
+        $items = [];
+        /** @var ParameterConfig $param */
+        foreach ($params as $param) {
+            $param->protectedView = $protect;
+            $items[] = $param->toArray();
+        }
+        $config['parameters'] = $items;
         $headers = HeaderConfig::whereServiceId($id)->get();
-        $config['headers'] = (empty($headers)) ? [] : $headers->toArray();
+        $items = [];
+        /** @var HeaderConfig $header */
+        foreach ($headers as $header) {
+            $header->protectedView = $protect;
+            $items[] = $header->toArray();
+        }
+        $config['headers'] = $items;
         $cacheConfig = ServiceCacheConfig::whereServiceId($id)->first();
-        $config['cache_enabled'] = (empty($cacheConfig)) ? false : $cacheConfig->getAttribute('cache_enabled');
-        $config['cache_ttl'] = (empty($cacheConfig)) ? 0 : $cacheConfig->getAttribute('cache_ttl');
+        $config = array_merge($config, ($cacheConfig ? $cacheConfig->toArray() : []));
 
         return $config;
     }
@@ -34,45 +44,49 @@ class RwsConfig extends BaseServiceConfigModel
     /**
      * {@inheritdoc}
      */
-    public static function validateConfig($config, $create = true)
+    public static function setConfig($id, $config, $local_config = null)
     {
         if (isset($config['parameters'])) {
             $params = $config['parameters'];
             if (!is_array($params)) {
                 throw new BadRequestException('Web service parameters must be an array.');
             }
+            ParameterConfig::whereServiceId($id)->delete();
             foreach ($params as $param) {
-                if (!ParameterConfig::validateConfig($param, $create)) {
-                    return false;
-                }
+                ParameterConfig::setConfig($id, $param, $local_config);
             }
         }
+
         if (isset($config['headers'])) {
             $headers = $config['headers'];
             if (!is_array($headers)) {
                 throw new BadRequestException('Web service headers must be an array.');
             }
+            HeaderConfig::whereServiceId($id)->delete();
             foreach ($headers as $header) {
-                if (!HeaderConfig::validateConfig($header, $create)) {
-                    return false;
-                }
+                HeaderConfig::setConfig($id, $header, $local_config);
             }
         }
 
-        return true;
+        ServiceCacheConfig::setConfig($id, $config, $local_config);
+
+        return parent::setConfig($id, $config, $local_config);
     }
 
     /**
      * {@inheritdoc}
      */
-    public static function setConfig($id, $config)
+    public static function storeConfig($id, $config)
     {
         if (isset($config['parameters'])) {
             $params = $config['parameters'];
             if (!is_array($params)) {
                 throw new BadRequestException('Web service parameters must be an array.');
             }
-            ParameterConfig::setConfig($id, $params);
+            ParameterConfig::whereServiceId($id)->delete();
+            foreach ($params as $param) {
+                ParameterConfig::storeConfig($id, $param);
+            }
         }
 
         if (isset($config['headers'])) {
@@ -80,23 +94,15 @@ class RwsConfig extends BaseServiceConfigModel
             if (!is_array($headers)) {
                 throw new BadRequestException('Web service headers must be an array.');
             }
-            HeaderConfig::setConfig($id, $headers);
+            HeaderConfig::whereServiceId($id)->delete();
+            foreach ($headers as $header) {
+                HeaderConfig::storeConfig($id, $header);
+            }
         }
 
-        $cache = [];
-        if (isset($config['cache_enabled'])) {
-            $cache['cache_enabled'] = $config['cache_enabled'];
-            unset($config['cache_enabled']);
-        }
-        if (isset($config['cache_ttl'])) {
-            $cache['cache_ttl'] = $config['cache_ttl'];
-            unset($config['cache_ttl']);
-        }
-        if (!empty($cache)) {
-            ServiceCacheConfig::setConfig($id, $cache);
-        }
+        ServiceCacheConfig::storeConfig($id, $config);
 
-        parent::setConfig($id, $config);
+        parent::storeConfig($id, $config);
     }
 
     /**
@@ -105,8 +111,24 @@ class RwsConfig extends BaseServiceConfigModel
     public static function getConfigSchema()
     {
         $schema = parent::getConfigSchema();
-        $schema[] = ParameterConfig::getConfigSchema();
-        $schema[] = HeaderConfig::getConfigSchema();
+        $schema[] = [
+            'name'        => 'parameters',
+            'label'       => 'Parameters',
+            'description' => 'Supply additional parameters to pass to the remote service, or exclude parameters passed from client.',
+            'type'        => 'array',
+            'required'    => false,
+            'allow_null'  => true,
+            'items'       => ParameterConfig::getConfigSchema()
+        ];
+        $schema[] = [
+            'name'        => 'headers',
+            'label'       => 'Headers',
+            'description' => 'Supply additional headers to pass to the remote service.',
+            'type'        => 'array',
+            'required'    => false,
+            'allow_null'  => true,
+            'items'       => HeaderConfig::getConfigSchema()
+        ];
         $schema = array_merge($schema, ServiceCacheConfig::getConfigSchema());
 
         return $schema;
@@ -141,6 +163,11 @@ class RwsConfig extends BaseServiceConfigModel
                     'This contains any additional CURL settings to use when making remote web service requests, ' .
                     'described as CUROPT_XXX at http://php.net/manual/en/function.curl-setopt.php. ' .
                     'Notable options include PROXY and PROXYUSERPWD for getting calls through proxies.';
+                break;
+            case 'replace_link':
+                $schema['label'] = 'Replace Hyperlinks';
+                $schema['description'] =
+                    'Replace external hyperlinks in response with DF equivalent hyperlinks when possible.';
                 break;
         }
     }
