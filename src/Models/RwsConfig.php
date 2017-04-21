@@ -21,7 +21,7 @@ class RwsConfig extends BaseServiceConfigModel
 
         $params = ParameterConfig::whereServiceId($id)->get();
         $items = [];
-        /** @var ParameterConfig $map */
+        /** @var ParameterConfig $param */
         foreach ($params as $param) {
             $param->protectedView = $protect;
             $items[] = $param->toArray();
@@ -29,7 +29,7 @@ class RwsConfig extends BaseServiceConfigModel
         $config['parameters'] = $items;
         $headers = HeaderConfig::whereServiceId($id)->get();
         $items = [];
-        /** @var ParameterConfig $map */
+        /** @var HeaderConfig $header */
         foreach ($headers as $header) {
             $header->protectedView = $protect;
             $items[] = $header->toArray();
