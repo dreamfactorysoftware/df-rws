@@ -7,21 +7,17 @@ use DreamFactory\Core\Contracts\HttpStatusCodeInterface;
 use DreamFactory\Core\Contracts\ServiceResponseInterface;
 use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Enums\HttpStatusCodes;
-use DreamFactory\Core\Enums\ServiceTypeGroups;
 use DreamFactory\Core\Enums\VerbsMask;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\RestException;
 use DreamFactory\Core\Http\Controllers\StatusController;
 use DreamFactory\Core\Models\Service;
-use DreamFactory\Core\Resources\System\ServiceType;
 use DreamFactory\Core\Services\BaseRestService;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Core\Utility\Session;
-use DreamFactory\Library\Utility\Curl;
-use DreamFactory\Library\Utility\Enums\Verbs;
-use DreamFactory\Library\Utility\Scalar;
-use Illuminate\Contracts\Support\Arrayable;
+use DreamFactory\Core\Utility\Curl;
+use DreamFactory\Core\Enums\Verbs;
 use Log;
 
 class RemoteWeb extends BaseRestService implements CachedInterface
@@ -109,7 +105,7 @@ class RemoteWeb extends BaseRestService implements CachedInterface
         $this->parameters = (array)array_get($config, 'parameters', []);
         $this->headers = (array)array_get($config, 'headers', []);
 
-        $this->cacheEnabled = Scalar::boolval(array_get($config, 'cache_enabled'));
+        $this->cacheEnabled = array_get_bool($config, 'cache_enabled');
         $this->cacheTTL = intval(array_get($config, 'cache_ttl', Config::get('df.default_cache_ttl')));
         $this->cachePrefix = 'service_' . $this->id . ':';
 
@@ -211,11 +207,11 @@ class RemoteWeb extends BaseRestService implements CachedInterface
             // unless excluded
             if (!empty($parameters)) {
                 foreach ($parameters as $param) {
-                    if (Scalar::boolval(array_get($param, 'exclude'))) {
+                    if (array_get_bool($param, 'exclude')) {
                         if (0 === strcasecmp($name, strval(array_get($param, 'name')))) {
                             if (static::doesActionApply($param, $action)) {
-                                $outbound = !Scalar::boolval(array_get($param, 'outbound', true));
-                                $addToCacheKey = !Scalar::boolval(array_get($param, 'cache_key', true));
+                                $outbound = !array_get_bool($param, 'outbound', true);
+                                $addToCacheKey = !array_get_bool($param, 'cache_key', true);
                             }
                         }
                     }
@@ -228,12 +224,12 @@ class RemoteWeb extends BaseRestService implements CachedInterface
         // DSP additional outbound parameters
         if (!empty($parameters)) {
             foreach ($parameters as $param) {
-                if (!Scalar::boolval(array_get($param, 'exclude'))) {
+                if (!array_get_bool($param, 'exclude')) {
                     if (static::doesActionApply($param, $action)) {
                         $name = array_get($param, 'name');
                         $value = array_get($param, 'value');
-                        $outbound = Scalar::boolval(array_get($param, 'outbound', true));
-                        $addToCacheKey = Scalar::boolval(array_get($param, 'cache_key', true));
+                        $outbound = array_get_bool($param, 'outbound', true);
+                        $addToCacheKey = array_get_bool($param, 'cache_key', true);
 
                         static::parseArrayParameter($query, $cache_key, $name, $value, $outbound, $addToCacheKey);
                     }
@@ -261,7 +257,7 @@ class RemoteWeb extends BaseRestService implements CachedInterface
                 if (is_array($header) && static::doesActionApply($header, $action)) {
                     $name = array_get($header, 'name');
                     $value = array_get($header, 'value');
-                    if (Scalar::boolval(array_get($header, 'pass_from_client'))) {
+                    if (array_get_bool($header, 'pass_from_client')) {
                         // Check for Basic Auth pulled into server variable already
                         if ((0 === strcasecmp($name, 'Authorization')) &&
                             (isset($_SERVER['PHP_AUTH_USER']) && isset($_SERVER['PHP_AUTH_PW']))
