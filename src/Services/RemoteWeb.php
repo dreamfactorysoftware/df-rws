@@ -360,6 +360,10 @@ class RemoteWeb extends BaseRestService implements CachedInterface
         //	set outbound headers
         $this->addHeaders($this->headers, $this->action, $options);
 
+        foreach($this->request->getHeaders() as $name => $value){
+            $options[CURLOPT_HTTPHEADER][] = $name . ": " . $value;
+        }        
+        
         //  set outbound parameters
         $this->buildParameterString($this->parameters, $this->action, $query, $cacheQuery,
             $this->request->getParameters());
