@@ -4,6 +4,11 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.10.0] - 2017-06-05
+### Changed
+- Cleanup - removal of php-utils dependency
+- Look for headers from request to pass through when called from scripting environment
+
 ## [0.9.0] - 2017-04-21
 ### Changed
 - Use new service config handling for database configuration
@@ -88,7 +93,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## 0.1.0 - 2015-10-24
 First official release working with the new [df-core](https://github.com/dreamfactorysoftware/df-core) library.
 
-[Unreleased]: https://github.com/dreamfactorysoftware/df-rws/compare/0.9.0...HEAD
+[Unreleased]: https://github.com/dreamfactorysoftware/df-rws/compare/0.10.0...HEAD
+[0.10.0]: https://github.com/dreamfactorysoftware/df-rws/compare/0.9.0...0.10.0
 [0.9.0]: https://github.com/dreamfactorysoftware/df-rws/compare/0.8.0...0.9.0
 [0.8.0]: https://github.com/dreamfactorysoftware/df-rws/compare/0.7.1...0.8.0
 [0.7.1]: https://github.com/dreamfactorysoftware/df-rws/compare/0.7.0...0.7.1

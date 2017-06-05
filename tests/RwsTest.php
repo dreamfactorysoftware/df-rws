@@ -1,6 +1,6 @@
 <?php
 
-use DreamFactory\Library\Utility\Enums\Verbs;
+use DreamFactory\Core\Enums\Verbs;
 
 class RwsTest extends \DreamFactory\Core\Testing\TestCase
 {
@@ -43,14 +43,14 @@ class RwsTest extends \DreamFactory\Core\Testing\TestCase
             );
         }
 
-        if (!$this->serviceExists('dsp-tester')) {
+        if (!$this->serviceExists('df-tester')) {
             \DreamFactory\Core\Models\Service::create(
                 [
-                    "name"   => "dsp-tester",
+                    "name"   => "df-tester",
                     "type"   => "rws",
                     "label"  => "Remote web service",
                     "config" => [
-                        "base_url"      => "https://dsp-tester.cloud.dreamfactory.com/rest",
+                        "base_url"      => "https://df-tester.cloud.dreamfactory.com/rest",
                         "cache_enabled" => false,
                         "headers"       => [
                             [
@@ -86,7 +86,7 @@ class RwsTest extends \DreamFactory\Core\Testing\TestCase
 
     public function testGETheaders()
     {
-        $rs = $this->call(Verbs::GET, $this->prefix . '/dsp-tester');
+        $rs = $this->call(Verbs::GET, $this->prefix . '/df-tester');
         $this->assertEquals('{"service":[{"name":"Database","api_name":"db"},{"name":"Email Service","api_name":"email"},{"name":"Local File Storage","api_name":"files"},{"name":"Local Portal Service","api_name":"portal"}]}',
             $rs->getContent());
     }

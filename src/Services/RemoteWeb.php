@@ -7,21 +7,17 @@ use DreamFactory\Core\Contracts\HttpStatusCodeInterface;
 use DreamFactory\Core\Contracts\ServiceResponseInterface;
 use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Enums\HttpStatusCodes;
-use DreamFactory\Core\Enums\ServiceTypeGroups;
 use DreamFactory\Core\Enums\VerbsMask;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\RestException;
 use DreamFactory\Core\Http\Controllers\StatusController;
 use DreamFactory\Core\Models\Service;
-use DreamFactory\Core\Resources\System\ServiceType;
 use DreamFactory\Core\Services\BaseRestService;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Core\Utility\Session;
-use DreamFactory\Library\Utility\Curl;
-use DreamFactory\Library\Utility\Enums\Verbs;
-use DreamFactory\Library\Utility\Scalar;
-use Illuminate\Contracts\Support\Arrayable;
+use DreamFactory\Core\Utility\Curl;
+use DreamFactory\Core\Enums\Verbs;
 use Log;
 
 class RemoteWeb extends BaseRestService implements CachedInterface
@@ -109,7 +105,7 @@ class RemoteWeb extends BaseRestService implements CachedInterface
         $this->parameters = (array)array_get($config, 'parameters', []);
         $this->headers = (array)array_get($config, 'headers', []);
 
-        $this->cacheEnabled = Scalar::boolval(array_get($config, 'cache_enabled'));
+        $this->cacheEnabled = array_get_bool($config, 'cache_enabled');
         $this->cacheTTL = intval(array_get($config, 'cache_ttl', Config::get('df.default_cache_ttl')));
         $this->cachePrefix = 'service_' . $this->id . ':';
 
@@ -182,11 +178,11 @@ class RemoteWeb extends BaseRestService implements CachedInterface
      * @param string $action
      * @param string $query
      * @param string $cache_key
-     * @param array  $requestParams
+     * @param array  $request_params
      *
      * @return void
      */
-    protected static function buildParameterString($parameters, $action, &$query, &$cache_key, $requestParams = [])
+    protected static function buildParameterString($parameters, $action, &$query, &$cache_key, $request_params = [])
     {
         // Using raw query string here to allow for multiple parameters with the same key name.
         // The laravel Request object or PHP global array $_GET doesn't allow that.
@@ -194,7 +190,7 @@ class RemoteWeb extends BaseRestService implements CachedInterface
 
         // If request is coming from a scripted service then $_SERVER['QUERY_STRING'] will be blank.
         // Therefore need to check the Request object for parameters.
-        foreach ($requestParams as $pk => $pv) {
+        foreach ($request_params as $pk => $pv) {
             $param = $pk . '=' . $pv;
             if (!in_array($param, $requestQuery)) {
                 $requestQuery[] = $param;
@@ -211,11 +207,11 @@ class RemoteWeb extends BaseRestService implements CachedInterface
             // unless excluded
             if (!empty($parameters)) {
                 foreach ($parameters as $param) {
-                    if (Scalar::boolval(array_get($param, 'exclude'))) {
+                    if (array_get_bool($param, 'exclude')) {
                         if (0 === strcasecmp($name, strval(array_get($param, 'name')))) {
                             if (static::doesActionApply($param, $action)) {
-                                $outbound = !Scalar::boolval(array_get($param, 'outbound', true));
-                                $addToCacheKey = !Scalar::boolval(array_get($param, 'cache_key', true));
+                                $outbound = !array_get_bool($param, 'outbound', true);
+                                $addToCacheKey = !array_get_bool($param, 'cache_key', true);
                             }
                         }
                     }
@@ -225,15 +221,15 @@ class RemoteWeb extends BaseRestService implements CachedInterface
             static::parseArrayParameter($query, $cache_key, $name, $value, $outbound, $addToCacheKey);
         }
 
-        // DSP additional outbound parameters
+        // DreamFactory additional outbound parameters
         if (!empty($parameters)) {
             foreach ($parameters as $param) {
-                if (!Scalar::boolval(array_get($param, 'exclude'))) {
+                if (!array_get_bool($param, 'exclude')) {
                     if (static::doesActionApply($param, $action)) {
                         $name = array_get($param, 'name');
                         $value = array_get($param, 'value');
-                        $outbound = Scalar::boolval(array_get($param, 'outbound', true));
-                        $addToCacheKey = Scalar::boolval(array_get($param, 'cache_key', true));
+                        $outbound = array_get_bool($param, 'outbound', true);
+                        $addToCacheKey = array_get_bool($param, 'cache_key', true);
 
                         static::parseArrayParameter($query, $cache_key, $name, $value, $outbound, $addToCacheKey);
                     }
@@ -246,22 +242,23 @@ class RemoteWeb extends BaseRestService implements CachedInterface
      * @param array  $headers
      * @param string $action
      * @param array  $options
+     * @param array  $request_headers
      *
      * @return void
      */
-    protected static function addHeaders($headers, $action, &$options)
+    protected static function addHeaders($headers, $action, &$options, $request_headers = [])
     {
         if (null === array_get($options, CURLOPT_HTTPHEADER)) {
             $options[CURLOPT_HTTPHEADER] = [];
         }
 
-        // DSP outbound headers, additional and pass through
+        // DreamFactory outbound headers, additional and pass through
         if (!empty($headers)) {
             foreach ($headers as $header) {
                 if (is_array($header) && static::doesActionApply($header, $action)) {
                     $name = array_get($header, 'name');
                     $value = array_get($header, 'value');
-                    if (Scalar::boolval(array_get($header, 'pass_from_client'))) {
+                    if (array_get_bool($header, 'pass_from_client')) {
                         // Check for Basic Auth pulled into server variable already
                         if ((0 === strcasecmp($name, 'Authorization')) &&
                             (isset($_SERVER['PHP_AUTH_USER']) && isset($_SERVER['PHP_AUTH_PW']))
@@ -271,11 +268,14 @@ class RemoteWeb extends BaseRestService implements CachedInterface
                         } else {
                             $phpHeaderName = strtoupper(str_replace(['-', ' '], ['_', '_'], $name));
                             // check for non-standard headers (prefix HTTP_) and standard headers like Content-Type
-                            if (isset($_SERVER['HTTP_' . $phpHeaderName])) {
-                                $value = $_SERVER['HTTP_' . $phpHeaderName];
-                            } elseif (isset($_SERVER[$phpHeaderName])) {
-                                $value = $_SERVER[$phpHeaderName];
-                            }
+                            // check in $_SERVER for external requests and $request_headers for internal requests
+                            $value =
+                                array_get($_SERVER, 'HTTP_' . $phpHeaderName,
+                                    array_get($_SERVER, $phpHeaderName,
+                                        array_get($_SERVER, $name,
+                                            array_get($request_headers, 'HTTP_' . $phpHeaderName,
+                                                array_get($request_headers, $phpHeaderName,
+                                                    array_get($request_headers, $name))))));
                         }
                     }
                     Session::replaceLookups($value, true);
@@ -358,7 +358,7 @@ class RemoteWeb extends BaseRestService implements CachedInterface
         $options = $this->options;
 
         //	set outbound headers
-        $this->addHeaders($this->headers, $this->action, $options);
+        $this->addHeaders($this->headers, $this->action, $options, $this->request->getHeaders());
 
         //  set outbound parameters
         $this->buildParameterString($this->parameters, $this->action, $query, $cacheQuery,
