@@ -79,10 +79,9 @@ class RemoteWeb extends BaseRestService implements CachedInterface
         parent::__construct($settings);
         $this->autoDispatch = false;
 
-        $config = (array)array_get($settings, 'config', []);
         $this->apiDoc = (array)array_get($settings, 'doc');
-        $this->baseUrl = array_get($config, 'base_url');
-        $this->replaceLinks = array_get($config, 'replace_link', false);
+        $this->baseUrl = array_get($this->config, 'base_url');
+        $this->replaceLinks = array_get($this->config, 'replace_link', false);
         // Validate url setup
         if (empty($this->baseUrl)) {
             // fancy trick to grab the base url from swagger
@@ -100,16 +99,16 @@ class RemoteWeb extends BaseRestService implements CachedInterface
             }
         }
 
-        $this->options = (array)array_get($config, 'options');
+        $this->options = (array)array_get($this->config, 'options');
         static::cleanOptions($this->options);
-        $this->parameters = (array)array_get($config, 'parameters', []);
-        $this->headers = (array)array_get($config, 'headers', []);
+        $this->parameters = (array)array_get($this->config, 'parameters', []);
+        $this->headers = (array)array_get($this->config, 'headers', []);
 
-        $this->cacheEnabled = array_get_bool($config, 'cache_enabled');
-        $this->cacheTTL = intval(array_get($config, 'cache_ttl', Config::get('df.default_cache_ttl')));
+        $this->cacheEnabled = array_get_bool($this->config, 'cache_enabled');
+        $this->cacheTTL = intval(array_get($this->config, 'cache_ttl', Config::get('df.default_cache_ttl')));
         $this->cachePrefix = 'service_' . $this->id . ':';
 
-        $this->implementsAccessList = boolval(array_get($config, 'implements_access_list', false));
+        $this->implementsAccessList = boolval(array_get($this->config, 'implements_access_list', false));
     }
 
     /**
