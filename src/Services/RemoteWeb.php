@@ -429,6 +429,9 @@ class RemoteWeb extends BaseRestService implements CachedInterface
         $contentType = Curl::getInfo('content_type');
         $result = $this->fixLinks($result);
         $response = ResponseFactory::create($result, $contentType, $status);
+        if ('chunked' === array_get($resultHeaders, 'Transfer-Encoding')) {
+            unset($resultHeaders['Transfer-Encoding']);
+        }
         $response->setHeaders($resultHeaders);
 
         if ($this->cacheEnabled) {
