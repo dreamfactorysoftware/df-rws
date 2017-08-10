@@ -32,12 +32,10 @@ class RemoteWeb extends BaseRestService implements CachedInterface
      * @var string
      */
     protected $baseUrl;
-
     /**
      * @var boolean
      */
     protected $replaceLinks = false;
-
     /**
      * @var array
      */
@@ -54,10 +52,6 @@ class RemoteWeb extends BaseRestService implements CachedInterface
      * @var array
      */
     protected $options = [];
-    /**
-     * @var array
-     */
-    protected $apiDoc = [];
     /**
      * @type bool
      */
@@ -79,19 +73,19 @@ class RemoteWeb extends BaseRestService implements CachedInterface
         parent::__construct($settings);
         $this->autoDispatch = false;
 
-        $this->apiDoc = (array)array_get($settings, 'doc');
         $this->baseUrl = array_get($this->config, 'base_url');
         $this->replaceLinks = array_get($this->config, 'replace_link', false);
         // Validate url setup
         if (empty($this->baseUrl)) {
             // fancy trick to grab the base url from swagger
-            if (!empty($this->apiDoc) && !empty($host = array_get($this->apiDoc, 'host'))) {
-                if (!empty($protocol = array_get($this->apiDoc, 'schemes'))) {
+            $doc = $this->getApiDoc();
+            if (!empty($doc) && !empty($host = array_get($doc, 'host'))) {
+                if (!empty($protocol = array_get($doc, 'schemes'))) {
                     $protocol = (is_array($protocol) ? current($protocol) : $protocol);
                 } else {
                     $protocol = 'http';
                 }
-                $basePath = array_get($this->apiDoc, 'basePath', '');
+                $basePath = array_get($doc, 'basePath', '');
                 $this->baseUrl = $protocol . '://' . $host . $basePath;
             }
             if (empty($this->baseUrl)) {
@@ -319,7 +313,7 @@ class RemoteWeb extends BaseRestService implements CachedInterface
     {
         $list = parent::getAccessList();
 
-        $paths = array_keys((array)array_get($this->apiDoc, 'paths'));
+        $paths = array_keys((array)array_get($this->getApiDoc(), 'paths'));
         foreach ($paths as $path) {
             // drop service from path
             if (!empty($path = ltrim(strstr(ltrim($path, '/'), '/'), '/'))) {
@@ -505,7 +499,7 @@ class RemoteWeb extends BaseRestService implements CachedInterface
 
     protected function matchEventPath($search)
     {
-        $paths = array_keys((array)array_get($this->apiDoc, 'paths'));
+        $paths = array_keys((array)array_get($this->getApiDoc(), 'paths'));
         $pieces = explode('/', $search);
         foreach ($paths as $path) {
             // drop service from path
@@ -536,6 +530,6 @@ class RemoteWeb extends BaseRestService implements CachedInterface
     /** @inheritdoc */
     public static function getApiDocInfo($service)
     {
-        return null;
+        return ['paths' => [], 'definitions' => []];
     }
 }
