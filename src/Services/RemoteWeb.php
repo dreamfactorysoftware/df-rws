@@ -1,8 +1,6 @@
 <?php namespace DreamFactory\Core\Rws\Services;
 
 use Config;
-use DreamFactory\Core\Components\Cacheable;
-use DreamFactory\Core\Contracts\CachedInterface;
 use DreamFactory\Core\Contracts\HttpStatusCodeInterface;
 use DreamFactory\Core\Contracts\ServiceResponseInterface;
 use DreamFactory\Core\Enums\ApiOptions;
@@ -20,10 +18,8 @@ use DreamFactory\Core\Utility\Curl;
 use DreamFactory\Core\Enums\Verbs;
 use Log;
 
-class RemoteWeb extends BaseRestService implements CachedInterface
+class RemoteWeb extends BaseRestService
 {
-    use Cacheable;
-
     //*************************************************************************
     //* Members
     //*************************************************************************
@@ -100,7 +96,6 @@ class RemoteWeb extends BaseRestService implements CachedInterface
 
         $this->cacheEnabled = array_get_bool($this->config, 'cache_enabled');
         $this->cacheTTL = intval(array_get($this->config, 'cache_ttl', Config::get('df.default_cache_ttl')));
-        $this->cachePrefix = 'service_' . $this->id . ':';
 
         $this->implementsAccessList = boolval(array_get($this->config, 'implements_access_list', false));
     }
