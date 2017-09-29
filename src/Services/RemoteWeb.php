@@ -418,8 +418,10 @@ class RemoteWeb extends BaseRestService
         $contentType = Curl::getInfo('content_type');
         $result = $this->fixLinks($result);
         $response = ResponseFactory::create($result, $contentType, $status);
-        if ('chunked' === array_get($resultHeaders, 'Transfer-Encoding')) {
-            unset($resultHeaders['Transfer-Encoding']);
+        if ('chunked' === array_get(array_change_key_case($resultHeaders, CASE_LOWER), 'transfer-encoding')) {
+            // don't relay this header through to client as it isn't handled well in some cases
+            unset($resultHeaders['Transfer-Encoding']); // normal header case
+            unset($resultHeaders['transfer-encoding']); // Restlet has all lower for this header
         }
         $response->setHeaders($resultHeaders);
 
