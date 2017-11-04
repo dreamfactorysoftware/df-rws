@@ -525,8 +525,8 @@ class RemoteWeb extends BaseRestService
     }
 
     /** @inheritdoc */
-    public static function getApiDocInfo($service)
+    public function getApiDocInfo()
     {
-        return ['paths' => [], 'definitions' => []];
+        return ['paths' => [], 'components' => []];
     }
 }
