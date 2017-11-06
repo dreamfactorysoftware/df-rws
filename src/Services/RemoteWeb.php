@@ -179,9 +179,18 @@ class RemoteWeb extends BaseRestService
         // If request is coming from a scripted service then $_SERVER['QUERY_STRING'] will be blank.
         // Therefore need to check the Request object for parameters.
         foreach ($request_params as $pk => $pv) {
-            $param = $pk . '=' . $pv;
-            if (!in_array($param, $requestQuery)) {
-                $requestQuery[] = $param;
+            if (is_array($pv)) {
+                foreach ($pv as $ipk => $ipv) {
+                    $param = $pk.'[' . $ipk . ']=' . $ipv;
+                    if (!in_array($param, $requestQuery)) {
+                        $requestQuery[] = $param;
+                    }
+                }
+            } else {
+                $param = $pk . '=' . $pv;
+                if (!in_array($param, $requestQuery)) {
+                    $requestQuery[] = $param;
+                }
             }
         }
 
