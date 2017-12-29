@@ -8,9 +8,9 @@ use DreamFactory\Core\Enums\HttpStatusCodes;
 use DreamFactory\Core\Enums\VerbsMask;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\RestException;
-use DreamFactory\Core\Http\Controllers\StatusController;
 use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Services\BaseRestService;
+use DreamFactory\Core\Utility\Environment;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Core\Utility\Session;
@@ -426,13 +426,12 @@ class RemoteWeb extends BaseRestService
 
         $contentType = Curl::getInfo('content_type');
         $result = $this->fixLinks($result);
-        $response = ResponseFactory::create($result, $contentType, $status);
         if ('chunked' === array_get(array_change_key_case($resultHeaders, CASE_LOWER), 'transfer-encoding')) {
             // don't relay this header through to client as it isn't handled well in some cases
             unset($resultHeaders['Transfer-Encoding']); // normal header case
             unset($resultHeaders['transfer-encoding']); // Restlet has all lower for this header
         }
-        $response->setHeaders($resultHeaders);
+        $response = ResponseFactory::create($result, $contentType, $status, $resultHeaders);
 
         if ($this->cacheEnabled) {
             switch ($this->action) {
@@ -469,7 +468,7 @@ class RemoteWeb extends BaseRestService
             $string = $result;
         }
 
-        $myUri = StatusController::getURI($_SERVER);
+        $myUri = Environment::getURI();
 
         $allRws = Service::whereType('rws')->whereIsActive(1)->get()->all();
         if (!empty($allRws)) {
