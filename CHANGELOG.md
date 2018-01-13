@@ -3,6 +3,9 @@ All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+### Added
+- DF-1163 Added support for multipart/form-data file upload
+
 ## [0.14.0] - 2017-12-28
 - Added package discovery
 - DF-1150 Updated copyright and support email
