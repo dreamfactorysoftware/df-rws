@@ -5,6 +5,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 ### Added
 - DF-1163 Added support for multipart/form-data file upload
+### Fixed
+- DF-1293 Role service access components corrected in use of 'as_access_list' option
 
 ## [0.14.0] - 2017-12-28
 - Added package discovery
