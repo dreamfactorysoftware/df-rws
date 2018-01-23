@@ -5,6 +5,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 ### Added
 - DF-1163 Added support for multipart/form-data file upload
+- DF-1293 Added implements_access_list config option for overriding swagger def for role service access
 ### Fixed
 - DF-1293 Role service access components corrected in use of 'as_access_list' option
 
