@@ -320,7 +320,7 @@ class RemoteWeb extends BaseRestService
         $paths = array_keys((array)array_get($this->getApiDoc(), 'paths'));
         foreach ($paths as $path) {
             // drop service from path
-            if (!empty($path = ltrim(strstr(ltrim($path, '/'), '/'), '/'))) {
+            if (!empty($path = ltrim($path, '/'))) {
                 $list[] = $path;
                 $path = explode("/", $path);
                 end($path);
@@ -361,7 +361,27 @@ class RemoteWeb extends BaseRestService
         $this->buildParameterString($this->parameters, $this->action, $query, $cacheQuery,
             $this->request->getParameters());
 
+        // Get raw request content
         $data = $this->request->getContent();
+        if(empty($data)){
+            // Get multipart/form-data post
+            $data = $this->request->input();
+        }
+        if(empty($data) || is_array($data)) {
+            if(empty($data)){
+                $data = [];
+            }
+            // Get multipart/form-data uploaded file post
+            $fileUploads = $this->request->getFile();
+            foreach ($fileUploads as $key => $fileUpload) {
+                if (!empty($fileUpload)) {
+                    $path = array_get($fileUpload, 'tmp_name');
+                    $type = array_get($fileUpload, 'type');
+                    $name = array_get($fileUpload, 'name');
+                    $data[$key] = new \CURLFile($path, $type, $name);
+                }
+            }
+        }
 
         $resource = array_map('rawurlencode', $this->resourceArray);
         if (!empty($resource)) {
