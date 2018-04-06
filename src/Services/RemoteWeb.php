@@ -196,7 +196,7 @@ class RemoteWeb extends BaseRestService
 
         // inbound parameters from request to be passed on
         foreach ($requestQuery as $q) {
-            $pairs = explode('=', $q);
+            $pairs = explode('=', $q, 2);
             $name = trim(array_get($pairs, 0));
             $value = trim(array_get($pairs, 1));
             $outbound = true;
