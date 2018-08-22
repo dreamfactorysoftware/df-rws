@@ -175,6 +175,7 @@ class RemoteWeb extends BaseRestService
         // Using raw query string here to allow for multiple parameters with the same key name.
         // The laravel Request object or PHP global array $_GET doesn't allow that.
         $requestQuery = explode('&', array_get($_SERVER, 'QUERY_STRING'));
+        $requestQuery = array_map(function($q) { return urldecode($q); }, $requestQuery);
 
         // If request is coming from a scripted service then $_SERVER['QUERY_STRING'] will be blank.
         // Therefore need to check the Request object for parameters.
@@ -196,7 +197,7 @@ class RemoteWeb extends BaseRestService
 
         // inbound parameters from request to be passed on
         foreach ($requestQuery as $q) {
-            $pairs = explode('=', $q);
+            $pairs = explode('=', $q, 2);
             $name = trim(array_get($pairs, 0));
             $value = trim(array_get($pairs, 1));
             $outbound = true;
