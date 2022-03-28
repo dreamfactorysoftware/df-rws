@@ -18,6 +18,8 @@ use DreamFactory\Core\Utility\Curl;
 use DreamFactory\Core\Enums\Verbs;
 use Log;
 
+include 'utils.php';
+
 class RemoteWeb extends BaseRestService
 {
     //*************************************************************************
@@ -427,10 +429,18 @@ class RemoteWeb extends BaseRestService
             $error = Curl::getError();
             $code = array_get($error, 'code', 500);
             $status = $code;
+            $CurlNumCodeArr = array_keys(CURLCODE);
+
             //  In case the status code is not a valid HTTP Status code
             if (!in_array($status, HttpStatusCodes::getDefinedConstants())) {
                 //  Do necessary translation here. Default is Internal server error.
                 $status = HttpStatusCodeInterface::HTTP_INTERNAL_SERVER_ERROR;
+
+                if (in_array($code, $CurlNumCodeArr)) {
+                  $error['message'] = CURLCODE[$code];
+                } else {
+                 $error['message'] = 'CURLE_OBSOLETE';
+                }
             }
 
             throw new RestException($status, array_get($error, 'message'), $code);
