@@ -128,7 +128,7 @@ class RemoteWeb extends BaseRestService
         } else {
             Session::replaceLookups($value, true);
             $part = urlencode($name);
-            if (!empty($value)) {
+            if (!empty($value) || is_numeric($value)) {
                 $part .= '=' . urlencode($value);
             }
             if ($add_to_query) {
