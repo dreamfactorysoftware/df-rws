@@ -400,7 +400,7 @@ class RemoteWeb extends BaseRestService
         }
 
         if (!empty($query)) {
-            $splicer = (false === strpos($this->baseUrl, '?')) ? '?' : '&';
+            $splicer = str_contains($this->baseUrl, '?') ? '&' : '?';
             $url .= $splicer . $query;
         }
 
@@ -546,7 +546,7 @@ class RemoteWeb extends BaseRestService
 
                 $resources = [];
                 foreach ($diffs as $ndx => $diff) {
-                    if (0 !== strpos($diff, '{')) {
+                    if (!str_starts_with($diff, '{')) {
                         // not a replacement parameters, see if another path works
                         continue 2;
                     }
