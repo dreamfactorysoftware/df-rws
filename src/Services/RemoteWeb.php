@@ -533,7 +533,7 @@ class RemoteWeb extends BaseRestService
             $pathPieces = explode('/', $path);
             if (count($pieces) === count($pathPieces)) {
                 if (empty($diffs = array_diff($pathPieces, $pieces))) {
-                    return ['path' => str_replace('/', '.', trim($path, '/')), 'resource' => null];
+                    return ['path' => 'path', 'resource' => null];
                 }
 
                 $resources = [];
@@ -546,7 +546,7 @@ class RemoteWeb extends BaseRestService
                     $resources[$diff] = $pieces[$ndx];
                 }
 
-                return ['path' => str_replace('/', '.', trim($path, '/')), 'resource' => $resources];
+                return ['path' => 'path', 'resource' => $resources];
             }
         }
 
