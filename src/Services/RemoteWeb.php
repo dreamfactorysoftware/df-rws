@@ -52,6 +52,10 @@ class RemoteWeb extends BaseRestService
      * @type bool
      */
     protected $implementsAccessList = false;
+    /**
+     * @type bool
+     */
+    protected $preserve_forward_trailing_slash = false;
 
     //*************************************************************************
     //* Methods
@@ -98,6 +102,7 @@ class RemoteWeb extends BaseRestService
         $this->cacheTTL = intval(array_get($this->config, 'cache_ttl', Config::get('df.default_cache_ttl')));
 
         $this->implementsAccessList = boolval(array_get($this->config, 'implements_access_list', false));
+        $this->preserve_forward_trailing_slash = boolval(array_get($this->config, 'preserve_forward_trailing_slash', false));
     }
 
     /**
@@ -387,6 +392,9 @@ class RemoteWeb extends BaseRestService
         $resource = array_map('rawurlencode', $this->resourceArray);
         if (!empty($resource)) {
             $url = rtrim($this->baseUrl, '/') . '/' . implode('/', $resource);
+            if ($this->preserve_forward_trailing_slash) {
+                $url  = rtrim($url,"/") . '/';
+            }
         } else {
             $url = $this->baseUrl;
         }
