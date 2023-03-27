@@ -6,6 +6,7 @@ use DreamFactory\Core\Contracts\ServiceResponseInterface;
 use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Enums\HttpStatusCodes;
 use DreamFactory\Core\Enums\VerbsMask;
+use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\RestException;
 use DreamFactory\Core\Models\Service;
@@ -158,7 +159,7 @@ class RemoteWeb extends BaseRestService
      * @return bool
      * @throws \DreamFactory\Core\Exceptions\BadRequestException
      */
-    protected static function doesActionApply($config, $action)
+    protected static function doesActionApply($config, $action): bool
     {
         $excludeVerbMasks = intval(array_get($config, 'action'));
         $myActionMask = VerbsMask::toNumeric($action);
@@ -167,15 +168,16 @@ class RemoteWeb extends BaseRestService
     }
 
     /**
-     * @param array  $parameters
+     * @param array $parameters
      * @param string $action
      * @param string $query
      * @param string $cache_key
-     * @param array  $request_params
+     * @param array $request_params
      *
      * @return void
+     * @throws BadRequestException
      */
-    protected static function buildParameterString($parameters, $action, &$query, &$cache_key, $request_params = [])
+    protected static function buildParameterString(array $parameters, string $action, string &$query, string &$cache_key, array $request_params = []): void
     {
         // Using raw query string here to allow for multiple parameters with the same key name.
         // The laravel Request object or PHP global array $_GET doesn't allow that.
@@ -194,7 +196,13 @@ class RemoteWeb extends BaseRestService
                 }
             } else {
                 $param = $pk . '=' . $pv;
-                if (!in_array($param, $requestQuery)) {
+                $replaceUnderscoreWithDot = str_replace("_", ".", $pk);
+                $matchingParam = $replaceUnderscoreWithDot . "=" . $pv;
+
+                // A user might send query params that contain a "." (ex: "name.identifier")
+                // And this will create 2 different query params being added to the request being sent from DF
+                // To avoid that, we check if the query param we get from Laravel matches the one that exist in $_SERVER
+                if (!in_array($param, $requestQuery) && !in_array($matchingParam, $requestQuery)) {
                     $requestQuery[] = $param;
                 }
             }
