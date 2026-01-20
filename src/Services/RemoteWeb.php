@@ -250,17 +250,34 @@ class RemoteWeb extends BaseRestService
     }
 
     /**
-     * @param array  $headers
-     * @param string $action
-     * @param array  $options
-     * @param array  $request_headers
+     * @param array       $headers
+     * @param string      $action
+     * @param array       $options
+     * @param array       $request_headers
+     * @param string|null $autoContentType  Auto-add Content-Type header if provided and not already configured
      *
      * @return void
      */
-    protected static function addHeaders($headers, $action, &$options, $request_headers = [])
+    protected static function addHeaders($headers, $action, &$options, $request_headers = [], $autoContentType = null)
     {
         if (null === array_get($options, CURLOPT_HTTPHEADER)) {
             $options[CURLOPT_HTTPHEADER] = [];
+        }
+
+        // Auto-add Content-Type header if detected and not already configured
+        if ($autoContentType) {
+            $hasContentType = false;
+            if (!empty($headers)) {
+                foreach ($headers as $header) {
+                    if (is_array($header) && 0 === strcasecmp(array_get($header, 'name', ''), 'Content-Type')) {
+                        $hasContentType = true;
+                        break;
+                    }
+                }
+            }
+            if (!$hasContentType) {
+                $options[CURLOPT_HTTPHEADER][] = 'Content-Type: ' . $autoContentType;
+            }
         }
 
         // DreamFactory outbound headers, additional and pass through
@@ -368,8 +385,17 @@ class RemoteWeb extends BaseRestService
         $cacheQuery = '';
         $options = $this->options;
 
+        // Check if this is a JSON content type request (needed for header and body handling)
+        $contentType = $this->request->getContentType();
+        $isJsonRequest = $contentType && (
+            stripos($contentType, 'application/json') !== false ||
+            stripos($contentType, '+json') !== false
+        );
+
         //	set outbound headers
-        $this->addHeaders($this->headers, $this->action, $options, $this->request->getHeaders());
+        // For JSON requests, auto-add Content-Type header if not already configured
+        $autoContentType = $isJsonRequest ? $contentType : null;
+        $this->addHeaders($this->headers, $this->action, $options, $this->request->getHeaders(), $autoContentType);
 
         //  set outbound parameters
         $this->buildParameterString($this->parameters, $this->action, $query, $cacheQuery,
@@ -377,22 +403,31 @@ class RemoteWeb extends BaseRestService
 
         // Get raw request content
         $data = $this->request->getContent();
+
         if(empty($data)){
-            // Get multipart/form-data post
+            // Get multipart/form-data post or parsed input
             $data = $this->request->input();
         }
+
         if(empty($data) || is_array($data)) {
             if(empty($data)){
                 $data = [];
             }
-            // Get multipart/form-data uploaded file post
-            $fileUploads = $this->request->getFile();
-            foreach ($fileUploads as $key => $fileUpload) {
-                if (!empty($fileUpload)) {
-                    $path = array_get($fileUpload, 'tmp_name');
-                    $type = array_get($fileUpload, 'type');
-                    $name = array_get($fileUpload, 'name');
-                    $data[$key] = new \CURLFile($path, $type, $name);
+
+            // For JSON requests, if we have array data (from parsed input),
+            // re-encode it as JSON string to preserve the original format
+            if ($isJsonRequest && !empty($data) && is_array($data)) {
+                $data = json_encode($data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            } else {
+                // Get multipart/form-data uploaded file post
+                $fileUploads = $this->request->getFile();
+                foreach ($fileUploads as $key => $fileUpload) {
+                    if (!empty($fileUpload)) {
+                        $path = array_get($fileUpload, 'tmp_name');
+                        $type = array_get($fileUpload, 'type');
+                        $name = array_get($fileUpload, 'name');
+                        $data[$key] = new \CURLFile($path, $type, $name);
+                    }
                 }
             }
         }
@@ -435,9 +470,20 @@ class RemoteWeb extends BaseRestService
 
         Log::debug('Outbound HTTP request: ' . $this->action . ': ' . $url);
 
+        // Disable JSON auto-decode to pass raw response through without decode/re-encode cycle.
+        // This avoids potential encoding issues and preserves the exact response from the remote service.
+        Curl::setAutoDecodeJson(false);
         Curl::setDecodeToArray(true);
         $result = Curl::request($this->action, $url, $data, $options);
+        Curl::setAutoDecodeJson(true);  // Reset to default for other services
         $resultHeaders = Curl::getLastResponseHeaders();
+
+        // Debug: Log response info to trace truncation issues
+        $curlInfo = Curl::getInfo();
+        Log::debug('RWS CURL DEBUG: size_download=' . array_get($curlInfo, 'size_download') .
+            ', download_content_length=' . array_get($curlInfo, 'download_content_length') .
+            ', result_type=' . gettype($result) .
+            ', result_length=' . (is_string($result) ? strlen($result) : (is_array($result) ? 'array:' . count($result) : 'other')));
 
         if (false === $result) {
             $error = Curl::getError();
@@ -468,6 +514,17 @@ class RemoteWeb extends BaseRestService
             unset($resultHeaders['Transfer-Encoding']); // normal header case
             unset($resultHeaders['transfer-encoding']); // Restlet has all lower for this header
         }
+
+        // Debug: Check data integrity before response creation
+        if (is_array($result)) {
+            $reEncoded = json_encode($result, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            $jsonError = json_last_error();
+            Log::debug('RWS RESPONSE DEBUG: re-encoded_length=' . strlen($reEncoded) .
+                ', json_error=' . $jsonError .
+                ', json_error_msg=' . json_last_error_msg() .
+                ', last_100_chars=' . substr($reEncoded, -100));
+        }
+
         $response = ResponseFactory::create($result, $contentType, $status, $resultHeaders);
 
         if ($this->cacheEnabled) {
