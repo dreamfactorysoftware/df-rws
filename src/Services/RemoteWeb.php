@@ -57,6 +57,10 @@ class RemoteWeb extends BaseRestService
      * @type bool
      */
     protected $preserve_forward_trailing_slash = false;
+    /**
+     * @var OAuth2ClientCredentials|null
+     */
+    protected $oauth2 = null;
 
     //*************************************************************************
     //* Methods
@@ -104,6 +108,27 @@ class RemoteWeb extends BaseRestService
 
         $this->implementsAccessList = boolval(array_get($this->config, 'implements_access_list', false));
         $this->preserve_forward_trailing_slash = boolval(array_get($this->config, 'preserve_forward_trailing_slash', false));
+
+        if (OAuth2ClientCredentials::isConfigured($this->config)) {
+            $this->oauth2 = new OAuth2ClientCredentials((int)$this->id, $this->config);
+        }
+    }
+
+    /**
+     * Append or replace the Authorization header on the outbound CURLOPT_HTTPHEADER list.
+     */
+    protected static function setBearerHeader(array &$options, string $token): void
+    {
+        if (!isset($options[CURLOPT_HTTPHEADER]) || !is_array($options[CURLOPT_HTTPHEADER])) {
+            $options[CURLOPT_HTTPHEADER] = [];
+        }
+        foreach ($options[CURLOPT_HTTPHEADER] as $i => $header) {
+            if (stripos($header, 'Authorization:') === 0) {
+                unset($options[CURLOPT_HTTPHEADER][$i]);
+            }
+        }
+        $options[CURLOPT_HTTPHEADER] = array_values($options[CURLOPT_HTTPHEADER]);
+        $options[CURLOPT_HTTPHEADER][] = 'Authorization: Bearer ' . $token;
     }
 
     /**
@@ -468,6 +493,10 @@ class RemoteWeb extends BaseRestService
             }
         }
 
+        if ($this->oauth2) {
+            static::setBearerHeader($options, $this->oauth2->getAccessToken());
+        }
+
         Log::debug('Outbound HTTP request: ' . $this->action . ': ' . $url);
 
         // Disable JSON auto-decode to pass raw response through without decode/re-encode cycle.
@@ -475,6 +504,16 @@ class RemoteWeb extends BaseRestService
         Curl::setAutoDecodeJson(false);
         Curl::setDecodeToArray(true);
         $result = Curl::request($this->action, $url, $data, $options);
+
+        // If backend rejected the token (likely mid-flight revocation), drop the
+        // cached token and retry once with a freshly acquired one.
+        if ($this->oauth2 && Curl::getLastHttpCode() === 401) {
+            Log::info('RWS backend returned 401; invalidating OAuth2 token cache and retrying once.');
+            $this->oauth2->invalidateCache();
+            static::setBearerHeader($options, $this->oauth2->getAccessToken());
+            $result = Curl::request($this->action, $url, $data, $options);
+        }
+
         Curl::setAutoDecodeJson(true);  // Reset to default for other services
         $resultHeaders = Curl::getLastResponseHeaders();
 
