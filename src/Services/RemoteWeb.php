@@ -145,7 +145,8 @@ class RemoteWeb extends BaseRestService
         $name,
         $value,
         $add_to_query = true,
-        $add_to_key = true
+        $add_to_key = true,
+        $use_private = false
     ) {
         if (is_array($value)) {
             foreach ($value as $sub => $subValue) {
@@ -154,10 +155,13 @@ class RemoteWeb extends BaseRestService
                     $name . '[' . $sub . ']',
                     $subValue,
                     $add_to_query,
-                    $add_to_key);
+                    $add_to_key,
+                    $use_private);
             }
         } else {
-            Session::replaceLookups($value, true);
+            // Only expand private lookups for admin-configured values.
+            // Caller-supplied values resolve public lookups only.
+            Session::replaceLookups($value, $use_private);
             $part = urlencode($name);
             if (!empty($value)) {
                 $part .= '=' . urlencode($value);
@@ -267,7 +271,7 @@ class RemoteWeb extends BaseRestService
                         $outbound = array_get_bool($param, 'outbound', true);
                         $addToCacheKey = array_get_bool($param, 'cache_key', true);
 
-                        static::parseArrayParameter($query, $cache_key, $name, $value, $outbound, $addToCacheKey);
+                        static::parseArrayParameter($query, $cache_key, $name, $value, $outbound, $addToCacheKey, true);
                     }
                 }
             }
@@ -311,7 +315,11 @@ class RemoteWeb extends BaseRestService
                 if (is_array($header) && static::doesActionApply($header, $action)) {
                     $name = array_get($header, 'name');
                     $value = array_get($header, 'value');
+                    // Admin-configured header values may expand private lookups.
+                    // Client-supplied values resolve public lookups only.
+                    $usePrivate = true;
                     if (array_get_bool($header, 'pass_from_client')) {
+                        $usePrivate = false;
                         // Check for Basic Auth pulled into server variable already
                         if ((0 === strcasecmp($name, 'Authorization')) &&
                             (isset($_SERVER['PHP_AUTH_USER']) && isset($_SERVER['PHP_AUTH_PW']))
@@ -331,7 +339,7 @@ class RemoteWeb extends BaseRestService
                                                     array_get($request_headers, $name))))));
                         }
                     }
-                    Session::replaceLookups($value, true);
+                    Session::replaceLookups($value, $usePrivate);
                     $options[CURLOPT_HTTPHEADER][] = $name . ': ' . $value;
                 }
             }
@@ -495,6 +503,13 @@ class RemoteWeb extends BaseRestService
 
         if ($this->oauth2) {
             static::setBearerHeader($options, $this->oauth2->getAccessToken());
+        }
+
+        // Do not follow redirects unless the service is explicitly configured to.
+        // This keeps the connector from chasing a Location target chosen by the remote host.
+        if (!array_key_exists(CURLOPT_FOLLOWLOCATION, $options)) {
+            $options[CURLOPT_FOLLOWLOCATION] = false;
+            $options[CURLOPT_MAXREDIRS] = 0;
         }
 
         Log::debug('Outbound HTTP request: ' . $this->action . ': ' . $url);
