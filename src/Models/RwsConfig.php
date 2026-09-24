@@ -14,7 +14,13 @@ class RwsConfig extends BaseServiceConfigModel
         'options',
         'replace_link',
         'implements_access_list',
-        'preserve_forward_trailing_slash'
+        'preserve_forward_trailing_slash',
+        'oauth_token_url',
+        'oauth_client_id',
+        'oauth_client_secret',
+        'oauth_grant_type',
+        'oauth_scope',
+        'oauth_auth_method',
     ];
 
     protected $casts = [
@@ -24,6 +30,10 @@ class RwsConfig extends BaseServiceConfigModel
         'implements_access_list' => 'boolean',
         'preserve_forward_trailing_slash' => 'boolean',
     ];
+
+    protected $encrypted = ['oauth_client_secret'];
+
+    protected $protected = ['oauth_client_secret'];
 
     /**
      * {@inheritdoc}
@@ -193,6 +203,54 @@ class RwsConfig extends BaseServiceConfigModel
                 $schema['description'] =
                     "Enable this option if you want to add (or preserve) a trailing forward slash '/' to your url. ".
                     "Example: 'https://google.com' will become 'https://google.com/'";
+                break;
+            case 'oauth_token_url':
+                $schema['label'] = 'OAuth2 Token URL';
+                $schema['type'] = 'text';
+                $schema['description'] =
+                    'Token endpoint for OAuth2 client credentials grant. '.
+                    'When set, DreamFactory auto-fetches bearer tokens before proxying requests. '.
+                    'Leave blank to disable backend OAuth2.';
+                break;
+            case 'oauth_client_id':
+                $schema['label'] = 'OAuth2 Client ID';
+                $schema['type'] = 'text';
+                $schema['description'] = 'OAuth2 client identifier.';
+                break;
+            case 'oauth_client_secret':
+                $schema['label'] = 'OAuth2 Client Secret';
+                $schema['type'] = 'password';
+                $schema['description'] = 'OAuth2 client secret. Stored encrypted at rest.';
+                break;
+            case 'oauth_grant_type':
+                $schema['label'] = 'OAuth2 Grant Type';
+                $schema['type'] = 'picklist';
+                $schema['values'] = [
+                    ['label' => 'Client Credentials', 'name' => 'client_credentials'],
+                ];
+                $schema['default'] = 'client_credentials';
+                $schema['description'] =
+                    'Grant type used to obtain the backend access token. '.
+                    'Client credentials is the machine-to-machine flow (no user context).';
+                break;
+            case 'oauth_scope':
+                $schema['label'] = 'OAuth2 Scope';
+                $schema['type'] = 'text';
+                $schema['description'] =
+                    'Optional OAuth2 scope. Required by some providers (e.g. Oracle OIDS/IDCS). '.
+                    'Example: "ords/fdny/read" or "urn:opc:resource:consumer::all".';
+                break;
+            case 'oauth_auth_method':
+                $schema['label'] = 'OAuth2 Client Auth Method';
+                $schema['type'] = 'picklist';
+                $schema['values'] = [
+                    ['label' => 'Basic Auth Header (Oracle, default)', 'name' => 'basic_header'],
+                    ['label' => 'POST Body (RFC 6749)', 'name' => 'post_body'],
+                ];
+                $schema['default'] = 'basic_header';
+                $schema['description'] =
+                    'How to send client credentials to the token endpoint. '.
+                    'Oracle OIDS requires Basic auth header; some providers only accept POST body params.';
                 break;
         }
     }
